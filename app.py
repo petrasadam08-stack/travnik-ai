@@ -14,6 +14,10 @@ if not api_key:
 else:
     client = genai.Client(api_key=api_key)
     
+    # Inicializace paměti chatu v session_state
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
     krok = st.selectbox(
         "📍 V jaké fázi se právě nacházíš?",
         [
@@ -25,41 +29,71 @@ else:
         ]
     )
 
-    odpoved_uzivatele = st.text_input("Tvoje zpráva / odpověď na předchozí úkol:")
-    
-    fotka = st.camera_input("Vyfoť aktuální stav (pokud si o ni kouč řekl)") or st.file_uploader("Nebo nahraj fotku", type=["jpg", "jpeg", "png"])
+    # Vykreslení dosavadní historie chatu
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            if "image" in message and message["image"]:
+                st.image(message["image"], width="stretch")
+            st.markdown(message["content"])
 
-    if st.button("💬 Odeslat koučovi"):
-        with st.spinner("Kouč analyzuje situaci..."):
+    # Vstup pro novou zprávu od uživatele (chat input dole)
+    odpoved_uzivatele = st.chat_input("Napiš odpověď koučovi...")
+    
+    # Volitelná fotka vedle chatu
+    fotka = st.file_uploader("Nebo nahraj novou fotku k aktuálnímu úkolu", type=["jpg", "jpeg", "png"])
+
+    if odpoved_uzivatele or fotka:
+        # Uložení zprávy uživatele do historie
+        user_content = odpoved_uzivatele if odpoved_uzivatele else "Posílám fotku k úkolu."
+        
+        img_obj = None
+        if fotka:
+            img_obj = Image.open(fotka)
+
+        # Zobrazení uživatelské zprávy v rozhraní
+        with st.chat_message("user"):
+            if img_obj:
+                st.image(img_obj, width="stretch")
+            st.markdown(user_content)
+
+        # Přidání do historie
+        st.session_state.messages.append({"role": "user", "content": user_content, "image": img_obj})
+
+        with st.spinner("Kouč analyzuje tvou odpověď..."):
+            
+            # Sestavení kontextu z celé historie, aby AI věděla, co řešíme
+            historie_text = f"Fáze trávníku: {krok}\n\n"
+            for m in st.session_state.messages[:-1]:
+                historie_text += f"{m['role'].upper()}: {m['content']}\n"
             
             plny_prompt = f"""
-            Jsi osobní agronomický kouč. Tvojí zásadou je VÉST UŽIVATELE POSTUPNĚ, NIKDY NEDÁVEJ VŠECHNY ÚKOLY NARÁZ.
+            {historie_text}
+            USER (aktuální reakce): {user_content}
+
+            Jsi osobní agronomický kouč. VEDÉŠ UŽIVATELE POSTUPNĚ, NIKDY NEDÁVEJ VŠECHNY ÚKOLY NARÁZ.
             Mluv přímo k uživateli v ty-formě ("Vezmi", "Udělej", "Napiš mi").
 
             TVÁ STRUKTURA ODPOVĚDI:
-            1. 🔍 **Stručný pohled:** Krátce zhodnoť stav (co vidíš nebo co uživatel napsal).
+            1. 🔍 **Stručný pohled:** Krátce zhodnoť reakci uživatele.
             2. 🎯 **Jeden konkrétní úkol:** Dej uživateli POUZE JEDNU JEDINOU věc, kterou má teď udělat. 
-            3. ❓ **Co chci slyšet / vidět:** Jasně řekni, co po tobě v dalším kroku budeš chtít (zda slovní odpověď, nebo fotku).
-
-            AKTUÁLNÍ VSTUP OD UŽIVATELE:
-            Fáze: {krok}
-            Odpověď / reakce uživatele: {odpoved_uzivatele}
+            3. ❓ **Co chci slyšet / vidět:** Jasně řekni, co po něm budeš chtít v dalším kroku.
             """
             
             contents = [plny_prompt]
-            if fotka:
-                img = Image.open(fotka)
-                st.image(img, caption="Aktuální podklad", width="stretch")
-                contents.append(img)
+            if img_obj:
+                contents.append(img_obj)
             
             try:
-                # Použijeme stabilní gemini-3.5-flash pro spolehlivější provoz
                 response = client.models.generate_content(
                     model="gemini-3.5-flash",
                     contents=contents
                 )
-                st.markdown("---")
-                st.subheader("👨‍🌾 Kouč radí:")
-                st.write(response.text)
+                ai_reply = response.text
             except Exception as e:
-                st.warning("Server je přetížený. Zkus prosím kliknout na tlačítko odeslat ještě jednou za pár vteřin.")
+                ai_reply = "Omlouvám se, server je teď přetížený. Zkus zprávu odeslat za chvíli znovu."
+
+            # Zobrazení odpovědi AI a uložení do historie
+            with st.chat_message("assistant"):
+                st.markdown(ai_reply)
+            
+            st.session_state.messages.append({"role": "assistant", "content": ai_reply})
