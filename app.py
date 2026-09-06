@@ -12,7 +12,6 @@ api_key = st.secrets.get("GEMINI_API_KEY")
 if not api_key:
     st.error("Chybí Gemini API klíč v Secrets ve Streamlitu!")
 else:
-    # Inicializace nového oficiálního klienta
     client = genai.Client(api_key=api_key)
     
     krok = st.selectbox(
@@ -55,9 +54,9 @@ else:
                 
                 prompt_text = f"Aktuální krok procesu: {krok}. Poznámka od uživatele: {komentar}."
                 
-                # Volání nového modelu gemini-2.5-flash s instrukcemi
+                # Změna na ověřený model gemini-2.0-flash
                 response = client.models.generate_content(
-                    model="gemini-2.5-flash",
+                    model="gemini-2.0-flash",
                     contents=[img, prompt_text],
                     config={
                         'system_instruction': system_instruction
