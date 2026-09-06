@@ -18,8 +18,8 @@ else:
     if "messages" not in st.session_state:
         st.session_state.messages = []
     
-    if "last_photo_name" not in st.session_state:
-        st.session_state.last_photo_name = None
+    if "last_sent_photo_name" not in st.session_state:
+        st.session_state.last_sent_photo_name = None
 
     krok = st.selectbox(
         "📍 V jaké fázi se právě nacházíš?",
@@ -56,21 +56,19 @@ else:
 
     odpoved_uzivatele = st.chat_input("Napiš zprávu koučovi...")
 
-    # Detekce, zda jde o ÚPLNĚ NOVOU fotku, kterou uživatel právě vybral
-    current_photo_name = fotka.name if fotka else None
-    is_brand_new_photo = current_photo_name and (current_photo_name != st.session_state.last_photo_name)
-
-    if odpoved_uzivatele or is_brand_new_photo or tlacitko_bez_fotky_stisknuto:
+    if odpoved_uzivatele or tlacitko_bez_fotky_stisknuto:
         if tlacitko_bez_fotky_stisknuto:
             user_content = "Nemůžu teď fotit (je tma / nemám u sebe foťák). Můžeme pokračovat bez fotky popisem?"
             img_obj = None
         else:
-            user_content = odpoved_uzivatele if odpoved_uzivatele else "Posílám vyžádanou fotku."
+            user_content = odpoved_uzivatele
             
             img_obj = None
-            if is_brand_new_photo:
-                img_obj = Image.open(fotka)
-                st.session_state.last_photo_name = current_photo_name
+            if fotka is not None:
+                current_photo_name = fotka.name
+                if current_photo_name != st.session_state.last_sent_photo_name:
+                    img_obj = Image.open(fotka)
+                    st.session_state.last_sent_photo_name = current_photo_name
 
         with st.chat_message("user"):
             if img_obj:
@@ -93,12 +91,11 @@ else:
 
             PRAVIDLA PRO ODPOVĚĎ:
             1. **Běžná konverzace / Pozdravy / Poděkování:** Pokud uživatel píše jen obecnou věc, odpověz přátelsky, stručně, s lehkou trávníkovou tématikou.
-            2. **Fyzické testy (bez fotky):** U úkolů jako test šroubovákem, zkouška pevnosti kořenů tahem apod. fotku **nevyžaduj**, ptej se slovně na odpor nebo chování trávníku.
-            3. **Vizuální detaily (s fotkou):** Pokud jde o chorobu, skvrny nebo barvu stébel, vyzvěď fotku. 
-            4. **Situace "Nemůžu teď fotit":** Pokud uživatel hlásí, že fotit nemůže, vyhodnoť to a zkus pokračovat slovně.
-            5. **JEDINÝ ÚKOL A VARIABILITA (VELMI DŮLEŽITÉ):** 
-               - Vždy dávej **pouze jeden jediný, naprosto konkrétní úkol** (nikdy nekombinuj víc věcí najednou, např. detail a celkový záběr musí jít postupně, nikoliv v jednom kroku).
-               - Větu s úkolem uvoď přirozenou výzvou, kterou **obměňuj** (např. střídej *„Teď udělej tohle:“*, *„Vrhni se na tohle:“*, *„Tvůj další krok:“*, *„Zkus teď toto:“*), ať to nepůsobí strojově pořád stejně.
+            2. **Preferuj fotky (Vizuální diagnostika):** Kdekoli to jde, raději uživatele **požádej o fotku** (např. vyfotit vyříznutý kousek drnu, kořínky zblízka, stébla), než abys ho nutil dlouze slovně popisovat vlastnosti hlíny nebo zápach. Fotka řekne víc a je to pro uživatele jednodušší.
+            3. **Situace "Nemůžu teď fotit":** Pokud uživatel hlásí, že fotit nemůže, až pak přistoupit k čistě slovnímu popisu.
+            4. **JEDINÝ ÚKOL A VARIABILITA (VELMI DŮLEŽITÉ):** 
+               - Vždy dávej **pouze jeden jediný, naprosto konkrétní úkol** (nikdy nekombinuj víc věcí najednou).
+               - Větu s úkolem uvoď přirozenou výzvou, kterou **obměňuj** (např. střídej *„Teď udělej tohle:“*, *„Vrhni se na tohle:“*, *„Tvůj další krok:“*, *„Zkus teď toto:“*).
             """
             
             contents = [plny_prompt]
