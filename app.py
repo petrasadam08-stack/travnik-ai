@@ -14,7 +14,6 @@ if not api_key:
 else:
     client = genai.Client(api_key=api_key)
     
-    # Inicializace paměti chatu v session_state
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
@@ -29,39 +28,32 @@ else:
         ]
     )
 
-    # Vykreslení dosavadní historie chatu
+    # Vykreslení historie chatu
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
-            if "image" in message and message["image"]:
+            if message.get("image"):
                 st.image(message["image"], width="stretch")
             st.markdown(message["content"])
 
-    # Vstup pro novou zprávu od uživatele (chat input dole)
+    with st.expander("📷 Chce kouč fotku? Klikni sem pro nahrání"):
+        fotka = st.file_uploader("Vyber fotku", type=["jpg", "jpeg", "png"], key="dynamic_photo")
+
     odpoved_uzivatele = st.chat_input("Napiš odpověď koučovi...")
-    
-    # Volitelná fotka vedle chatu
-    fotka = st.file_uploader("Nebo nahraj novou fotku k aktuálnímu úkolu", type=["jpg", "jpeg", "png"])
 
     if odpoved_uzivatele or fotka:
-        # Uložení zprávy uživatele do historie
-        user_content = odpoved_uzivatele if odpoved_uzivatele else "Posílám fotku k úkolu."
+        user_content = odpoved_uzivatele if odpoved_uzivatele else "Posílám vyžádanou fotku."
         
-        img_obj = None
-        if fotka:
-            img_obj = Image.open(fotka)
+        img_obj = Image.open(fotka) if fotka else None
 
-        # Zobrazení uživatelské zprávy v rozhraní
         with st.chat_message("user"):
             if img_obj:
                 st.image(img_obj, width="stretch")
             st.markdown(user_content)
 
-        # Přidání do historie
         st.session_state.messages.append({"role": "user", "content": user_content, "image": img_obj})
 
         with st.spinner("Kouč analyzuje tvou odpověď..."):
             
-            # Sestavení kontextu z celé historie, aby AI věděla, co řešíme
             historie_text = f"Fáze trávníku: {krok}\n\n"
             for m in st.session_state.messages[:-1]:
                 historie_text += f"{m['role'].upper()}: {m['content']}\n"
@@ -70,13 +62,17 @@ else:
             {historie_text}
             USER (aktuální reakce): {user_content}
 
-            Jsi osobní agronomický kouč. VEDÉŠ UŽIVATELE POSTUPNĚ, NIKDY NEDÁVEJ VŠECHNY ÚKOLY NARÁZ.
-            Mluv přímo k uživateli v ty-formě ("Vezmi", "Udělej", "Napiš mi").
+            Jsi zkušený agronomický kouč. Vedeš uživatele krok za krokem.
+            
+            PRAVIDLA PRO DIAGNÓZU:
+            1. Měj flexibilitu v tom, jak se ptáš, ale **musíš bezpečně a nekompromisně dojít ke správnému závěru/diagnóze**. Nenech se odvést na slepou kolej, postupně zužuj okruh podezření (např. eliminací škůdců, sucha, plísní).
+            2. Mluv přímo k uživateli v ty-formě ("Vezmi", "Udělej", "Napiš mi").
+            3. Dej POUZE JEDNU JEDINOU věc, kterou má teď udělat, ať ho nezahlcuješ.
 
             TVÁ STRUKTURA ODPOVĚDI:
-            1. 🔍 **Stručný pohled:** Krátce zhodnoť reakci uživatele.
-            2. 🎯 **Jeden konkrétní úkol:** Dej uživateli POUZE JEDNU JEDINOU věc, kterou má teď udělat. 
-            3. ❓ **Co chci slyšet / vidět:** Jasně řekni, co po něm budeš chtít v dalším kroku.
+            1. 🔍 **Stručný pohled:** Zhodnoť, co uživatel udělal/napsal, a posuň logicky dedukci blíž k výsledku.
+            2. 🎯 **Jeden konkrétní úkol:** Co má udělat teď.
+            3. ❓ **Co chci slyšet / vidět:** Co po něm budeš chtít jako další zpětnou vazbu.
             """
             
             contents = [plny_prompt]
@@ -92,8 +88,8 @@ else:
             except Exception as e:
                 ai_reply = "Omlouvám se, server je teď přetížený. Zkus zprávu odeslat za chvíli znovu."
 
-            # Zobrazení odpovědi AI a uložení do historie
             with st.chat_message("assistant"):
                 st.markdown(ai_reply)
             
             st.session_state.messages.append({"role": "assistant", "content": ai_reply})
+            st.rerun()
