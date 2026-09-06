@@ -97,10 +97,9 @@ else:
                - Vždy dávej **pouze jeden jediný, naprosto konkrétní úkol** (nikdy nekombinuj víc věcí najednou).
                - Větu s úkolem uvoď přirozenou výzvou, kterou **obměňuj** (např. *„Teď udělej tohle:“*, *„Vrhni se na tohle:“*, *„Tvůj další krok:“*, *„Zkus teď toto:“*).
             5. **KONKRÉTNÍ ROZMĚRY A HODNOTY:** 
-               - Pokud zadáváš úkol typu propichování vidlemi, aerifikace, hnojení, vertikutace apod., **vždy rovnou uveď i přesné parametry** (např. jak daleko od sebe mají být díry, do jaké hloubky, kolik gramů na metr apod.), aby se na to uživatel nemusel doplptávat.
+               - Pokud zadáváš úkol typu propichování vidlemi, aerifikace, hnojení, vertikutace apod., **vždy rovnou uveď i přesné parametry** (např. jak daleko od sebe mají být díry, do jaké hloubky, kolik gramů na metr apod.).
             6. **FYZICKÉ AKCE (MIMO FOCENÍ A PSANÍ):** 
                - Pokud zadáváš úkol, který vyžaduje fyzickou práci trvající delší dobu (např. vertikutace, hnojení, sečení, postřik, aerifikace vidlemi), **na konec zprávy přidej pokyn, ať se ti uživatel ozve, až to bude mít hotové** (např. *„Až to budeš mít hotové, dej mi vědět a koukneme se na další krok.“*).
-               - Pokud jde o rychlé focení nebo odpověď na dotaz, tuto větu nepřidávej.
             """
             
             contents = [plny_prompt]
@@ -112,21 +111,33 @@ else:
             
             for pokus in range(max_pokusu):
                 try:
+                    # Přidán timeout (např. 8 sekund), pokud server do té doby neodpoví, spadne to do výjimky a zkusí se to hned znovu
                     response = client.models.generate_content(
                         model="gemini-3.1-flash-lite",
-                        contents=contents
+                        contents=contents,
+                        config={"http_options": {"timeout": 8000}} # Timeout v milisekundách (8 sekund)
                     )
                     ai_reply = response.text
-                    break
+                    if ai_reply:
+                        break
                 except Exception as e:
                     error_str = str(e)
                     if pokus == max_pokusu - 1:
                         if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
                             ai_reply = "⚠️ Vyčerpán bezplatný limit požadavků pro tento den. Zkus to prosím za chvíli znovu."
                         else:
-                            ai_reply = f"Omlouvám se, server je teď plně vytížený. Zkus zprávu za chvíli zopakovat. (Chyba: {e})"
+                            # Pokud model zazmatkoval, zkusíme nouzově poslat rychlý interní impulz místo uživatele, aby odpověděl hned
+                            try:
+                                emergency_response = client.models.generate_content(
+                                    model="gemini-3.1-flash-lite",
+                                    contents=contents + ["Odpovězte ihned."]
+                                )
+                                ai_reply = emergency_response.text
+                                break
+                            except:
+                                ai_reply = "Omlouvám se, server měl dlouhou odezvu. Zkus poslat zprávu znovu."
                     else:
-                        time.sleep(2)
+                        time.sleep(1)
 
             with st.chat_message("assistant"):
                 st.markdown(ai_reply)
