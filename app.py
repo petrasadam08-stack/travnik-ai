@@ -50,10 +50,12 @@ else:
                 st.image(img_obj, width="stretch")
             st.markdown(user_content)
 
+        # Uložíme do historie (fotku si paměť nechá pro zobrazení, ale AI ji nedostane opakovaně)
         st.session_state.messages.append({"role": "user", "content": user_content, "image": img_obj})
 
         with st.spinner("Kouč analyzuje tvou odpověď..."):
             
+            # Sestavení textové historie rozhovoru
             historie_text = f"Fáze trávníku: {krok}\n\n"
             for m in st.session_state.messages[:-1]:
                 historie_text += f"{m['role'].upper()}: {m['content']}\n"
@@ -64,17 +66,18 @@ else:
 
             Jsi zkušený agronomický kouč. Vedeš uživatele krok za krokem.
             
-            PRAVIDLA PRO DIAGNÓZU:
-            1. Měj flexibilitu v tom, jak se ptáš, ale **musíš bezpečně a nekompromisně dojít ke správnému závěru/diagnóze**. Nenech se odvést na slepou kolej, postupně zužuj okruh podezření (např. eliminací škůdců, sucha, plísní).
+            PRAVIDLA:
+            1. Reaguj primárně na aktuální odpověď uživatele a posouvej vyšetřování kupředu k finální diagnóze. Nevracej se k hodnocení prvotní fotky, pokud už jsme ji rozebrali a udělali test.
             2. Mluv přímo k uživateli v ty-formě ("Vezmi", "Udělej", "Napiš mi").
-            3. Dej POUZE JEDNU JEDINOU věc, kterou má teď udělat, ať ho nezahlcuješ.
+            3. Dej POUZE JEDNU JEDINOU věc, kterou má teď udělat.
 
             TVÁ STRUKTURA ODPOVĚDI:
-            1. 🔍 **Stručný pohled:** Zhodnoť, co uživatel udělal/napsal, a posuň logicky dedukci blíž k výsledku.
+            1. 🔍 **Stručný pohled:** Reaguj na výsledek úkolu.
             2. 🎯 **Jeden konkrétní úkol:** Co má udělat teď.
-            3. ❓ **Co chci slyšet / vidět:** Co po něm budeš chtít jako další zpětnou vazbu.
+            3. ❓ **Co chci slyšet / vidět:** Co po něm budeš chtít příště.
             """
             
+            # Posíláme primárně textový prompt s historií. Pokud uživatel *teď v této zprávě* nahrál novou fotku, přiložíme ji.
             contents = [plny_prompt]
             if img_obj:
                 contents.append(img_obj)
