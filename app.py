@@ -25,7 +25,6 @@ else:
         ]
     )
 
-    # Vstup pro aktuální reakci nebo odpověď uživatele
     odpoved_uzivatele = st.text_input("Tvoje zpráva / odpověď na předchozí úkol:")
     
     fotka = st.camera_input("Vyfoť aktuální stav (pokud si AI o ni řekne)") or st.file_uploader("Nebo nahraj fotku", type=["jpg", "jpeg", "png"])
@@ -33,8 +32,8 @@ else:
     if st.button("💬 Odeslat koučovi"):
         with st.spinner("Kouč analyzuje situaci..."):
             
-            # PŘÍSNÝ INTERAKTIVNÍ PROMPT PRO POSTUPNÉ VEDENí
-            system_instruction = """
+            # Instrukce i kontext spojené přímo do textu (zcela bezpečné bez config parametrů)
+            plny_prompt = f"""
             Jsi osobní agronomický kouč. Tvojí zásadou je VÉST UŽIVATELE POSTUPNĚ, NIKDY NEDÁVEJ VŠECHNY ÚKOLY NARÁZ.
             Mluv přímo k uživateli v ty-formě ("Vezmi", "Udělej", "Napiš mi").
 
@@ -44,12 +43,11 @@ else:
             3. ❓ **Co chci slyšet / vidět:** Jasně řekni, co po tobě v dalším kroku budeš chtít (zda slovní odpověď typu "šlo to ztuha", nebo novou fotku).
 
             PRAVIDLO PRO FOTKY:
-            - Neříkej si o fotku u každého úkolu. Pokud uživatel dělá test šroubovákem nebo měří vlhkost, fotka potřeba není, stačí jeho slovní popis. Fotku si vyžádej jen tehdy, když potřebuješ vidět reálný vizuální posun (např. vyčištěnou hlínu po vyhrabání).
-            """
-            
-            plny_prompt = f"""
-            Aktuální fáze: {krok}
-            Odpověď / akce uživatele z předchozího kroku: {odpoved_uzivatele}
+            - Neříkej si o fotku u každého úkolu. Pokud uživatel dělá test šroubovákem nebo měří vlhkost, fotka potřeba není, stačí jeho slovní popis. Fotku si vyžádej jen tehdy, když potřebuješ vidět reálný vizuální posun.
+
+            AKTUÁLNÍ VSTUP OD UŽIVATELE:
+            Fáze: {krok}
+            Odpověď / reakce uživatele: {odpoved_uzivatele}
             """
             
             contents = [plny_prompt]
@@ -60,10 +58,7 @@ else:
             
             response = client.models.generate_content(
                 model="gemini-2.5-flash",
-                contents=contents,
-                config={
-                    'system_instruction': system_instruction
-                }
+                contents=contents
             )
             
             st.markdown("---")
