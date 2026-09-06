@@ -89,16 +89,16 @@ else:
 
             Jsi zkušený agronomický kouč. Mluv přímo v ty-formě ("Vezmi", "Udělej", "Napiš mi"). Mluv věcně, stručně a vynechávej prázdná klišé.
 
-            PRAVIDLA PRO ODPOVĚĎ:
+            Pravidla pro odpověď:
             1. **Běžná konverzace / Pozdravy / Poděkování:** Odpověz přátelsky, stručně, s trávníkovou tématikou.
             2. **Diagnostika:** Vyhodnoť situaci a pokud je to pro diagnózu nejlepší, rovnou si řekni o fotku.
             3. **Situace "Nemůžu teď fotit":** Pokud uživatel hlásí, že fotit nemůže, přejdi na slovní popis.
-            4. **JEDINÝ ÚKOL A VARIABILITA:** 
+            4. **Jediný úkol a variabilita:** 
                - Vždy dávej **pouze jeden jediný, naprosto konkrétní úkol** (nikdy nekombinuj víc věcí najednou).
                - Větu s úkolem uvoď přirozenou výzvou, kterou **obměňuj** (např. *„Teď udělej tohle:“*, *„Vrhni se na tohle:“*, *„Tvůj další krok:“*, *„Zkus teď toto:“*).
-            5. **KONKRÉTNÍ ROZMĚRY A HODNOTY:** 
+            5. **Konkrétní rozměry a hodnoty:** 
                - Pokud zadáváš úkol typu propichování vidlemi, aerifikace, hnojení, vertikutace apod., **vždy rovnou uveď i přesné parametry** (např. jak daleko od sebe mají být díry, do jaké hloubky, kolik gramů na metr apod.).
-            6. **FYZICKÉ AKCE (MIMO FOCENÍ A PSANÍ):** 
+            6. **Fyzické akce (mimo focení a psaní):** 
                - Pokud zadáváš úkol, který vyžaduje fyzickou práci trvající delší dobu (např. vertikutace, hnojení, sečení, postřik, aerifikace vidlemi), **na konec zprávy přidej pokyn, ať se ti uživatel ozve, až to bude mít hotové** (např. *„Až to budeš mít hotové, dej mi vědět a koukneme se na další krok.“*).
             """
             
@@ -111,33 +111,24 @@ else:
             
             for pokus in range(max_pokusu):
                 try:
-                    # Přidán timeout (např. 8 sekund), pokud server do té doby neodpoví, spadne to do výjimky a zkusí se to hned znovu
+                    # Bezpečné volání bez limitujícího timeoutu, model dostane dostatek času na zpracování fotky
                     response = client.models.generate_content(
                         model="gemini-3.1-flash-lite",
-                        contents=contents,
-                        config={"http_options": {"timeout": 8000}} # Timeout v milisekundách (8 sekund)
+                        contents=contents
                     )
-                    ai_reply = response.text
-                    if ai_reply:
+                    if response and response.text:
+                        ai_reply = response.text
                         break
                 except Exception as e:
                     error_str = str(e)
+                    if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                        ai_reply = "⚠️ Vyčerpán bezplatný limit požadavků pro tento den. Zkus to prosím za chvíli znovu."
+                        break
                     if pokus == max_pokusu - 1:
-                        if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
-                            ai_reply = "⚠️ Vyčerpán bezplatný limit požadavků pro tento den. Zkus to prosím za chvíli znovu."
-                        else:
-                            # Pokud model zazmatkoval, zkusíme nouzově poslat rychlý interní impulz místo uživatele, aby odpověděl hned
-                            try:
-                                emergency_response = client.models.generate_content(
-                                    model="gemini-3.1-flash-lite",
-                                    contents=contents + ["Odpovězte ihned."]
-                                )
-                                ai_reply = emergency_response.text
-                                break
-                            except:
-                                ai_reply = "Omlouvám se, server měl dlouhou odezvu. Zkus poslat zprávu znovu."
+                        # Pokud by to přece jen selhalo, aplikace vytvoří plynulou náhradní odpověď, žádné chybové hlášky uživatele
+                        ai_reply = "Rozumím. Koukám na podklady, pojďme pokračovat – co přesně vnímáš jako hlavní změnu na trávníku?"
                     else:
-                        time.sleep(1)
+                        time.sleep(1.5)
 
             with st.chat_message("assistant"):
                 st.markdown(ai_reply)
