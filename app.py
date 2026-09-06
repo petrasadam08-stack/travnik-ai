@@ -82,7 +82,7 @@ else:
             if is_new_photo and img_obj:
                 contents.append(img_obj)
             
-         try:
+            try:
                 response = client.models.generate_content(
                     model="gemini-2.0-flash",
                     contents=contents
