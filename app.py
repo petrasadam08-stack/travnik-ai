@@ -56,8 +56,9 @@ else:
                 3. ➡️ **Následující úkol pro uživatele:** (Co má udělal TEĎ a co bude další fotka, kterou po něm budeš chtít)
                 """
                 
+                # Použití stabilního názvu modelu
                 model = genai.GenerativeModel(
-                    model_name="gemini-1.5-pro",
+                    model_name="gemini-1.5-flash-latest",
                     system_instruction=system_instruction
                 )
                 
