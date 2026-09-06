@@ -1,5 +1,5 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai
 from PIL import Image
 
 st.set_page_config(page_title="Trávníkový Průvodce", page_icon="🌱", layout="centered")
@@ -10,9 +10,10 @@ st.caption("Krok za krokem od přípravy půdy až po dokonalý trávník")
 api_key = st.secrets.get("GEMINI_API_KEY")
 
 if not api_key:
-    st.error("Chybí Gemini API klíč v Secrets!")
+    st.error("Chybí Gemini API klíč v Secrets ve Streamlitu!")
 else:
-    genai.configure(api_key=api_key)
+    # Inicializace nového oficiálního klienta
+    client = genai.Client(api_key=api_key)
     
     krok = st.selectbox(
         "📍 V jaké fázi se právě nacházíš?",
@@ -37,7 +38,7 @@ else:
             with st.spinner("AI provádí hloubkovou analýzu kroku..."):
                 
                 system_instruction = """
-                Jsi specializovaný kouč pro zakládání a péči o trávník. Tovým úkolem je vést uživatele KROK ZA KROKEM.
+                Jsi specializovaný kouč pro zakládání a péči o trávník. Tvým úkolem je vést uživatele KROK ZA KROKEM.
                 Nikdy nedávej obecné poučky. Chovej se jako inspektor na stavbě trávníku.
 
                 PRAVIDLA PRO JEDNOTLIVÉ FÁZE:
@@ -52,22 +53,16 @@ else:
                 3. ➡️ **Následující úkol pro uživatele:**
                 """
                 
-                # Zjištění funkčního modelu dynamicky přes list_models
-                dostupne_modely = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+                prompt_text = f"Aktuální krok procesu: {krok}. Poznámka od uživatele: {komentar}."
                 
-                zvoleny_model = "models/gemini-1.5-flash"
-                for m in dostupne_modely:
-                    if "1.5-flash" in m:
-                        zvoleny_model = m
-                        break
-                
-                model = genai.GenerativeModel(
-                    model_name=zvoleny_model,
-                    system_instruction=system_instruction
+                # Volání nového modelu gemini-2.5-flash s instrukcemi
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=[img, prompt_text],
+                    config={
+                        'system_instruction': system_instruction
+                    }
                 )
-                
-                prompt = f"Aktuální krok procesu: {krok}. Poznámka od uživatele: {komentar}."
-                response = model.generate_content([prompt, img])
                 
                 st.markdown("---")
                 st.subheader("👨‍🌾 Instrukce pro tento krok:")
