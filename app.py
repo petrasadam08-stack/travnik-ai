@@ -17,7 +17,6 @@ else:
     if "messages" not in st.session_state:
         st.session_state.messages = []
     
-    # Paměť pro sledování, zda už byla fotka zpracována
     if "last_photo_name" not in st.session_state:
         st.session_state.last_photo_name = None
 
@@ -42,9 +41,8 @@ else:
     with st.expander("📷 Chce kouč fotku? Klikni sem pro nahrání"):
         fotka = st.file_uploader("Vyber fotku", type=["jpg", "jpeg", "png"], key="dynamic_photo")
 
-    odpoved_uzivatele = st.chat_input("Napiš odpověď koučovi...")
+    odpoved_uzivatele = st.chat_input("Napiš zprávu koučovi...")
 
-    # Zjistíme, jestli jde o reálně novou fotku
     current_photo_name = fotka.name if fotka else None
     is_new_photo = current_photo_name and (current_photo_name != st.session_state.last_photo_name)
 
@@ -63,7 +61,7 @@ else:
 
         st.session_state.messages.append({"role": "user", "content": user_content, "image": img_obj})
 
-        with st.spinner("Kouč analyzuje tvou odpověď..."):
+        with st.spinner("Kouč přemýšlí..."):
             
             historie_text = f"Fáze trávníku: {krok}\n\n"
             for m in st.session_state.messages[:-1]:
@@ -71,22 +69,15 @@ else:
             
             plny_prompt = f"""
             {historie_text}
-            USER (aktuální reakce): {user_content}
+            USER (aktuální zpráva): {user_content}
 
-            Jsi zkušený agronomický kouč. Vedeš uživatele krok za krokem.
-            
-            PRAVIDLA:
-            1. Reaguj na aktuální odpověď uživatele a posouvej vyšetřování kupředu k finální diagnóze. 
-            2. Mluv přímo k uživateli v ty-formě ("Vezmi", "Udělej", "Napiš mi").
-            3. Dej POUZE JEDNU JEDINOU věc, kterou má teď udělat.
+            Jsi zkušený agronomický kouč. Mluv přímo v ty-formě ("Vezmi", "Udělej", "Napiš mi").
 
-            TVÁ STRUKTURA ODPOVĚDI:
-            1. 🔍 **Stručný pohled:** Reaguj na výsledek úkolu.
-            2. 🎯 **Jeden konkrétní úkol:** Co má udělat teď.
-            3. ❓ **Co chci slyšet / vidět:** Co po něm budeš chtít příště.
+            PRAVIDLA PRO ODPOVĚĎ:
+            1. **Běžná konverzace / Pozdravy / Poděkování:** Pokud uživatel píše jen obecnou věc (např. "Ahoj", "Děkuji", "Super, díky"), odpověz přátelsky, stručně, s lehkou trávníkovou tématikou (např. "Ahoj! Jak ti dnes s trávníkem pomůžu?" nebo "Nemáš zač, ať to roste!"). V takovém případě **nevyžaduj** žádný akční úkol.
+            2. **Diagnostika / Úkoly:** Pokud uživatel reaguje na úkol, popisuje stav nebo posílá data (např. výsledek šroubováku), zhodnoť to, posuň vyšetřování blíž k cíli a dej mu **pouze jeden konkrétní další úkol**.
             """
             
-            # AI dostane obrázek POUZE tehdy, pokud jde o nově přidanou fotku v této zprávě
             contents = [plny_prompt]
             if is_new_photo and img_obj:
                 contents.append(img_obj)
