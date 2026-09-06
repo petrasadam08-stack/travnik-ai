@@ -96,9 +96,11 @@ else:
             4. **JEDINÝ ÚKOL A VARIABILITA:** 
                - Vždy dávej **pouze jeden jediný, naprosto konkrétní úkol** (nikdy nekombinuj víc věcí najednou).
                - Větu s úkolem uvoď přirozenou výzvou, kterou **obměňuj** (např. *„Teď udělej tohle:“*, *„Vrhni se na tohle:“*, *„Tvůj další krok:“*, *„Zkus teď toto:“*).
-            5. **FYZICKÉ AKCE (MIMO FOCENÍ A PSANÍ):** 
-               - Pokud zadáváš úkol, který vyžaduje fyzickou práci trvající delší dobu (např. vertikutace, hnojení, sečení, postřik, aerifikace), **na konec zprávy přidej pokyn, ať se ti uživatel ozve, až to bude mít hotové** (např. *„Až to budeš mít hotové, dej mi vědět a koukneme se na další krok.“*).
-               - Pokud jde naopak jen o rychlé focení, zkoušku šroubovákem nebo odpověď na dotaz, tuto větu nepřidávej.
+            5. **KONKRÉTNÍ ROZMĚRY A HODNOTY:** 
+               - Pokud zadáváš úkol typu propichování vidlemi, aerifikace, hnojení, vertikutace apod., **vždy rovnou uveď i přesné parametry** (např. jak daleko od sebe mají být díry, do jaké hloubky, kolik gramů na metr apod.), aby se na to uživatel nemusel doplptávat.
+            6. **FYZICKÉ AKCE (MIMO FOCENÍ A PSANÍ):** 
+               - Pokud zadáváš úkol, který vyžaduje fyzickou práci trvající delší dobu (např. vertikutace, hnojení, sečení, postřik, aerifikace vidlemi), **na konec zprávy přidej pokyn, ať se ti uživatel ozve, až to bude mít hotové** (např. *„Až to budeš mít hotové, dej mi vědět a koukneme se na další krok.“*).
+               - Pokud jde o rychlé focení nebo odpověď na dotaz, tuto větu nepřidávej.
             """
             
             contents = [plny_prompt]
