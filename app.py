@@ -30,10 +30,10 @@ else:
     if "onboarding_done" not in st.session_state:
         st.session_state.onboarding_done = False
 
-    # --- ÚVODNÍ ONBOARDING OKNO (Před vstupem do chatu a časové osy) ---
+    # --- ÚVODNÍ ONBOARDING OKNO ---
     if not st.session_state.onboarding_done:
         st.markdown("### 🌿 Vítej v Zahradním Kouči!")
-        st.write("Než začneme, nastavíme tvůj trávník. Aplikace funguje tak, že **všechny zásahy (zálivku, hnojení) provádíš primárně na výzvu kouče**, abys nic nezanedbal nebo neudělal špatně.")
+        st.write("Než začneme, nastavíme tvůj trávník. Aplikace funguje tak, že **všechny zásahy provádíš primárně na výzvu kouče**, abys nic nezanedbal.")
         
         with st.form("onboarding_form"):
             stav_travniku = st.selectbox(
@@ -73,26 +73,38 @@ else:
                 st.session_state.rezim_startu = rezim_startu
                 st.session_state.frekvence_zalivky = frekvence_zalivky
                 
-                # Zpracování počáteční fotky do chatu a časové osy
                 init_img_obj = None
                 if init_foto is not None:
                     init_img_obj = Image.open(init_foto)
                     init_img_obj.thumbnail((1024, 1024))
                     st.session_state.last_sent_photo_name = init_foto.name
                 
-                # První záznam do časové osy o stavu při startu
                 st.session_state.timeline.append({
                     "date": str(date.today()),
                     "action": "Vstupní profil",
                     "note": f"Stav: {stav_travniku}, Cíl: {rezim_startu}, Dosavadní zálivka: {frekvence_zalivky}"
                 })
 
-                # Uvítací zpráva od AI
+                # Pokyn pro AI hned při startu, aby zhodnotila fotku a řekla co dělat/nedělat
                 if "Akutní řešení" in rezim_startu:
-                    inicialni_text = f"Zaregistroval jsem vstupní data: Trávník je ve stavu „{stav_travniku}“ a dosud se zalévalo stylem „{frekvence_zalivky}“. Jdeme řešit akutní problém. Podíval jsem se na tvoji úvodní fotku – pojďme se pustit do nápravy!"
+                    init_prompt = f"Uživatel právě spustil aplikaci v režimu AKUTNÍ ŘEŠENÍ. Stav trávníku: {stav_travniku}, dosavadní zálivka: {frekvence_zalivky}. Podívej se na jeho úvodní fotku, zhodnoť zdravotní stav trávníku a řekni mu, co teď musí bezodkladně udělat k nápravě."
                 else:
-                    inicialni_text = f"Zaregistroval jsem vstupní data: Trávník je ve stavu „{stav_travniku}“ a přecházíme do standardního režimu údržby (dosud zálivka: „{frekvence_zalivky}“). Odteď vše hlídáme společně. Vždy počkej na moji výzvu k zálivce nebo hnojení. Jak to s ním dnes vypadá?"
-                
+                    init_prompt = f"Uživatel právě spustil aplikaci v REŽIMU STANDARDNÍ ÚDRŽBA. Stav trávníku: {stav_travniku}, dosavadní zálivka: {frekvence_zalivky}. Podívej se na jeho úvodní fotku, zhodnoť, zda trávník vypadá zdravě, a jasně mu řekni, co teď MŮŽE nebo NEMUSÍ dělat (zda je vše v pořádku a může jen odpočívat, nebo jestli je potřeba něco drobně upravit)."
+
+                with st.spinner("Kouč analyzuje vstupní fotku a data..."):
+                    contents = [init_prompt]
+                    if init_img_obj:
+                        contents.append(init_img_obj)
+                    
+                    try:
+                        resp = client.models.generate_content(
+                            model="gemini-3.1-flash-lite",
+                            contents=contents
+                        )
+                        inicialni_text = resp.text if resp and resp.text else "Zaregistroval jsem tvá vstupní data. Pojďme se pustit do péče o trávník!"
+                    except Exception:
+                        inicialni_text = "Zaregistroval jsem vstupní data i fotku. Jdeme na to!"
+
                 st.session_state.messages.append({
                     "role": "assistant", 
                     "content": inicialni_text, 
@@ -100,14 +112,13 @@ else:
                 })
                 st.rerun()
 
-    # --- HLAVNÍ APLIKACE (Po úspěšném onboardingu) ---
+    # --- HLAVNÍ APLIKACE ---
     else:
         with st.expander("📅 Zahradní deník & Časová osa zásahů"):
             st.write("Tady vidíš historii klíčových akcí, ze kterých čerpá AI paměť:")
             for idx, item in enumerate(st.session_state.timeline):
                 st.markdown(f"**{item['date']}** – `{item['action']}`: {item['note']}")
 
-        # Zobrazení historie chatu
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
                 if message.get("image"):
@@ -155,7 +166,7 @@ else:
                 
                 historie_casove_osy = "\n".join([f"- {item['date']}: {item['action']} ({item['note']})" for item in st.session_state.timeline])
                 
-                profil_info = f"""ÚVODNÍ PROFIL TRÁVNÍKU (ZJIŠTĚNO PŘI STARTU):
+                profil_info = f"""ÚVODNÍ PROFIL TRÁVNÍKU:
 - Stav trávníku: {st.session_state.get('stav_travniku', 'Nezadáno')}
 - Hlavní cíl / režim: {st.session_state.get('rezim_startu', 'Nezadáno')}
 - Dosavadní zálivka uživatele: {st.session_state.get('frekvence_zalivky', 'Nezadáno')}
@@ -173,16 +184,18 @@ else:
                 Jsi zkušený agronomický kouč. Mluv přímo v ty-formě ("Vezmi", "Udělej", "Napiš mi"). Mluv věcně, stručně a vynechávej prázdná klišé.
 
                 Pravidla pro odpověď:
-                1. **Pracuj s úvodním profilem:** Zohledni, jak je trávník starý a jak uživatel dosud zaléval (např. pokud zaléval špatně, uprav režim zálivky). Sleduj, zda jedeme v akutním řešení problému, nebo ve standardní údržbě.
-                2. **Přísná pravidla pro zápis do časové osy (`[ZAPIS:...`):** 
+                1. **Respektuj odpor uživatele k úkolům:** Pokud uživatel odmítne nějaký složitý test (např. měření kelímky) nebo napíše, že se mu to nechce dělat:
+                   - **Nikdy ho nenutť ani nekomentuj jeho lenost.** 
+                   - Okamžitě úkol zruš, nabídni rozumný odhad nebo univerzální bezpečný standard a posuň se bez řečí v péči dál.
+                2. **Pracuj s úvodním profilem:** Zohledni stav trávníku a dosavadní zálivku.
+                3. **Přísná pravidla pro zápis do časové osy (`[ZAPIS:...`):** 
                    - Tag `[ZAPIS:Název akce|Stručný popis]` použij **výhradně** tehdy, když uživatel explicitně hlásí, že dokončil reálnou, velkou fyzickou agronomickou práci (např. *Hnojení*, *Aerifikace*, *Vertikutace*, *Výsev*, *Postřik*). 
-                   - **Nikdy nezapisuj** obyčejné dotazy, konverzace ani diagnostické debaty.
-                3. **ABSOLUTNĚ JEDEN ÚKOL NA JEDNU ZPRÁVU (PŘÍSNÉ PRAVIDLO):** 
+                   - **Nikdy nezapisuj** obyčejné dotazy, konverzace ani odmítnutí úkolů.
+                4. **ABSOLUTNĚ JEDEN ÚKOL NA JEDNU ZPRÁVU (PŘÍSNÉ PRAVIDLO):** 
                    - Dávej vždy **pouze JEDINÝ, atomický krok**. 
-                   - **Nikdy nekombinuj hnojení s pokyny k zálivce, sečení nebo jiným dalším akcím do jedné zprávy!**
-                4. **Manuální vs. Strojové řešení:** Pokud daný jeden úkol lze provést ručně i strojově, nabídni pro něj obě varianty (A/B).
-                5. **Fyzické akce a čekání:** Po zadání úkolu přidej pokyn, ať se uživatel ozve, až to bude mít hotové. Nech trávník odpočívat.
-                6. **Přesné hodnoty:** Uváděj konkrétní parametry výhradně pro tento jeden aktuální úkol.
+                   - **Nikdy nekombinuj více pokynů do jedné zprávy!**
+                5. **Manuální vs. Strojové řešení:** Pokud daný úkol lze provést ručně i strojově, nabídni obě varianty (A/B).
+                6. **Fyzické akce a čekání:** Po zadání úkolu přidej pokyn, ať se uživatel ozve, až to bude mít hotové. Nech trávník odpočívat.
                 """
                 
                 contents = [plny_prompt]
