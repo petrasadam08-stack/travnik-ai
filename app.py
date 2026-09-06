@@ -36,7 +36,6 @@ else:
         if st.button("🚀 Vyhodnotit tento krok"):
             with st.spinner("AI provádí hloubkovou analýzu kroku..."):
                 
-                # Instrukce vloženy přímo do promptu (zcela bezpečné pro libovolnou verzi API)
                 plny_prompt = f"""
                 Jsi specializovaný kouč pro zakládání a péči o trávník. Tvým úkolem je vést uživatele KROK ZA KROKEM.
                 Nikdy nedávej obecné poučky. Chovej se jako inspektor na stavbě trávníku.
@@ -56,8 +55,9 @@ else:
                 Poznámka od uživatele: {komentar}
                 """
                 
+                # Aktualizováno na model požadovaný rozhraním Google API
                 response = client.models.generate_content(
-                    model="gemini-2.0-flash",
+                    model="gemini-3.6-flash",
                     contents=[img, plny_prompt]
                 )
                 
