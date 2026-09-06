@@ -52,12 +52,14 @@ else:
                 st.image(img, caption="Aktuální podklad", width="stretch")
                 contents.append(img)
             
-            # Aktualizováno na model požadovaný rozhraním
-            response = client.models.generate_content(
-                model="gemini-3.6-flash",
-                contents=contents
-            )
-            
-            st.markdown("---")
-            st.subheader("👨‍🌾 Kouč radí:")
-            st.write(response.text)
+            try:
+                # Použijeme stabilní gemini-3.5-flash pro spolehlivější provoz
+                response = client.models.generate_content(
+                    model="gemini-3.5-flash",
+                    contents=contents
+                )
+                st.markdown("---")
+                st.subheader("👨‍🌾 Kouč radí:")
+                st.write(response.text)
+            except Exception as e:
+                st.warning("Server je přetížený. Zkus prosím kliknout na tlačítko odeslat ještě jednou za pár vteřin.")
