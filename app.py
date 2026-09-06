@@ -94,9 +94,11 @@ else:
             PRAVIDLA PRO ODPOVĚĎ:
             1. **Běžná konverzace / Pozdravy / Poděkování:** Pokud uživatel píše jen obecnou věc, odpověz přátelsky, stručně, s lehkou trávníkovou tématikou.
             2. **Fyzické testy (bez fotky):** U úkolů jako test šroubovákem, zkouška pevnosti kořenů tahem apod. fotku **nevyžaduj**, ptej se slovně na odpor nebo chování trávníku.
-            3. **Vizuální detaily (s fotkou):** Pokud jde o chorobu, skvrny nebo barva stébel, vyzvěď fotku. 
+            3. **Vizuální detaily (s fotkou):** Pokud jde o chorobu, skvrny nebo barvu stébel, vyzvěď fotku. 
             4. **Situace "Nemůžu teď fotit":** Pokud uživatel hlásí, že fotit nemůže, vyhodnoť to a zkus pokračovat slovně.
-            5. **ZVÝRAZNĚNÍ ÚKOLU (VELMI DŮLEŽITÉ):** Vždy, když uživateli zadáváš konkrétní praktický úkol (např. píchnout šroubovák, udělat řez rýčem, vyfotit stébla), musíš větu nebo odstavec s tímto úkonem začít přesnou frází **"Teď udělej tohle:"**. 
+            5. **JEDINÝ ÚKOL A VARIABILITA (VELMI DŮLEŽITÉ):** 
+               - Vždy dávej **pouze jeden jediný, naprosto konkrétní úkol** (nikdy nekombinuj víc věcí najednou, např. detail a celkový záběr musí jít postupně, nikoliv v jednom kroku).
+               - Větu s úkolem uvoď přirozenou výzvou, kterou **obměňuj** (např. střídej *„Teď udělej tohle:“*, *„Vrhni se na tohle:“*, *„Tvůj další krok:“*, *„Zkus teď toto:“*), ať to nepůsobí strojově pořád stejně.
             """
             
             contents = [plny_prompt]
