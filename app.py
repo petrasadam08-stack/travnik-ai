@@ -5,7 +5,7 @@ from PIL import Image
 st.set_page_config(page_title="Trávníkový Průvodce", page_icon="🌱", layout="centered")
 
 st.title("🌱 Osobní Trávníkový Průvodce")
-st.caption("Krok za krokem od přípravy půdy až po dokonalý trávník")
+st.caption("Interaktivní agronomický kouč – krok za krokem")
 
 api_key = st.secrets.get("GEMINI_API_KEY")
 
@@ -18,49 +18,54 @@ else:
         "📍 V jaké fázi se právě nacházíš?",
         [
             "1. Test podloží & Příprava půdy (Rýčová sonda)",
-            "2. Kontrola výsevu (Správná hustota & vrstva hlíny)",
-            "3. Kontrola hnojení (Aplikace & krytí)",
-            "4. Vyhodnocení zálivky (Stav povrchu + podloží + počasí)",
-            "5. Diagnostika & Regenerace (Nestandardní stav)"
+            "2. Kontrola výsevu",
+            "3. Kontrola hnojení",
+            "4. Vyhodnocení zálivky a stavu",
+            "5. Diagnostika problému (fleky, choroby, škůdci)"
         ]
     )
 
-    komentar = st.text_input("Doplňující stav (např. 'včera pršelo 5mm', 'značka hnojiva Agro', 'hlína je jílovitá'):")
+    # Vstup pro aktuální reakci nebo odpověď uživatele
+    odpoved_uzivatele = st.text_input("Tvoje zpráva / odpověď na předchozí úkol:")
     
-    fotka = st.camera_input("Vyfoť aktuální krok") or st.file_uploader("Upload fotky", type=["jpg", "jpeg", "png"])
+    fotka = st.camera_input("Vyfoť aktuální stav (pokud si AI o ni řekne)") or st.file_uploader("Nebo nahraj fotku", type=["jpg", "jpeg", "png"])
 
-    if fotka:
-        img = Image.open(fotka)
-        st.image(img, caption="Nahraný podklad pro AI", use_container_width=True)
-        
-        if st.button("🚀 Vyhodnotit tento krok"):
-            with st.spinner("AI provádí hloubkovou analýzu kroku..."):
-                
-                plny_prompt = f"""
-                Jsi specializovaný kouč pro zakládání a péči o trávník. Tvým úkolem je vést uživatele KROK ZA KROKEM.
-                Nikdy nedávej obecné poučky. Chovej se jako inspektor na stavbě trávníku.
+    if st.button("💬 Odeslat koučovi"):
+        with st.spinner("Kouč analyzuje situaci..."):
+            
+            # PŘÍSNÝ INTERAKTIVNÍ PROMPT PRO POSTUPNÉ VEDENí
+            system_instruction = """
+            Jsi osobní agronomický kouč. Tvojí zásadou je VÉST UŽIVATELE POSTUPNĚ, NIKDY NEDÁVEJ VŠECHNY ÚKOLY NARÁZ.
+            Mluv přímo k uživateli v ty-formě ("Vezmi", "Udělej", "Napiš mi").
 
-                PRAVIDLA PRO JEDNOTLIVÉ FÁZE:
-                - '1. Test podloží': Zhodnoť strukturu půdy z fotky sondy/rýče. Urči, zda je půda utlačená, jílovitá nebo písčitá a jak hluboko je vlhko.
-                - '2. Kontrola výsevu': Posuď viditelnou hustotu osiva a zda je dostatečně překryté vrstvou zeminy/substrátu. 
-                - '3. Kontrola hnojení': Zkontroluj rovnoměrnost granulek na povrchu.
-                - '4. Vyhodnocení zálivky': Propoj vizuální stav povrchu s tím, co napsal uživatel o počasí. Řekni PŘESNĚ, kolik vody dát.
-                
-                STRUKTURA ODPOVĚDI:
-                1. 🔍 **Hodnocení fotky:**
-                2. 🚦 **Verdikt:** 
-                3. ➡️ **Následující úkol pro uživatele:**
+            TVÁ STRUKTURA ODPOVĚDI:
+            1. 🔍 **Stručný pohled:** Krátce zhodnoť stav (co vidíš nebo co uživatel napsal) bez zbytečných románů.
+            2. 🎯 **Jeden konkrétní úkol:** Dej uživateli POUZE JEDNU JEDINOU věc, kterou má teď udělat (např. test šroubovákem, vyhrabání místa, zálivka). 
+            3. ❓ **Co chci slyšet / vidět:** Jasně řekni, co po tobě v dalším kroku budeš chtít (zda slovní odpověď typu "šlo to ztuha", nebo novou fotku).
 
-                Aktuální krok procesu: {krok}
-                Poznámka od uživatele: {komentar}
-                """
-                
-                # Aktualizováno na model požadovaný rozhraním Google API
-                response = client.models.generate_content(
-                    model="gemini-3.6-flash",
-                    contents=[img, plny_prompt]
-                )
-                
-                st.markdown("---")
-                st.subheader("👨‍🌾 Instrukce pro tento krok:")
-                st.write(response.text)
+            PRAVIDLO PRO FOTKY:
+            - Neříkej si o fotku u každého úkolu. Pokud uživatel dělá test šroubovákem nebo měří vlhkost, fotka potřeba není, stačí jeho slovní popis. Fotku si vyžádej jen tehdy, když potřebuješ vidět reálný vizuální posun (např. vyčištěnou hlínu po vyhrabání).
+            """
+            
+            plny_prompt = f"""
+            Aktuální fáze: {krok}
+            Odpověď / akce uživatele z předchozího kroku: {odpoved_uzivatele}
+            """
+            
+            contents = [plny_prompt]
+            if fotka:
+                img = Image.open(fotka)
+                st.image(img, caption="Aktuální podklad", width="stretch")
+                contents.append(img)
+            
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=contents,
+                config={
+                    'system_instruction': system_instruction
+                }
+            )
+            
+            st.markdown("---")
+            st.subheader("👨‍🌾 Kouč radí:")
+            st.write(response.text)
