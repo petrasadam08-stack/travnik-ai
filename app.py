@@ -82,7 +82,7 @@ else:
             if is_new_photo and img_obj:
                 contents.append(img_obj)
             
-           try:
+            try:
                 response = client.models.generate_content(
                     model="gemini-2.0-flash",
                     contents=contents
@@ -90,7 +90,7 @@ else:
                 ai_reply = response.text
             except Exception as e:
                 ai_reply = f"Chyba od Google API: {e}"
-                
+
             with st.chat_message("assistant"):
                 st.markdown(ai_reply)
             
