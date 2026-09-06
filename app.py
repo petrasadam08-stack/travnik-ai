@@ -83,9 +83,8 @@ else:
             if is_new_photo and img_obj:
                 contents.append(img_obj)
             
-            # Automatické opakování při výpadku serveru (503)
             ai_reply = None
-            max_ pokusu = 3
+            max_pokusu = 3
             
             for pokus in range(max_pokusu):
                 try:
@@ -94,13 +93,12 @@ else:
                         contents=contents
                     )
                     ai_reply = response.text
-                    break  # Pokud to prošlo, vyskočíme ze smyčky
+                    break
                 except Exception as e:
-                    # Pokud je to poslední pokus, uložíme chybovou hlášku
                     if pokus == max_pokusu - 1:
                         ai_reply = f"Omlouvám se, server je teď plně vytížený. Zkus zprávu za chvíli zopakovat. (Chyba: {e})"
                     else:
-                        time.sleep(2)  # Počkáme 2 sekundy před dalším pokusem a kolečko se dál točí
+                        time.sleep(2)
 
             with st.chat_message("assistant"):
                 st.markdown(ai_reply)
