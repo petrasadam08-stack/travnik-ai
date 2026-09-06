@@ -17,7 +17,7 @@ else:
     krok = st.selectbox(
         "📍 V jaké fázi se právě nacházíš?",
         [
-            "1. Test podloží & Příprava půdy (Rýčová sonda)",
+            "1. Test podloží & Příprava půdy",
             "2. Kontrola výsevu",
             "3. Kontrola hnojení",
             "4. Vyhodnocení zálivky a stavu",
@@ -27,23 +27,19 @@ else:
 
     odpoved_uzivatele = st.text_input("Tvoje zpráva / odpověď na předchozí úkol:")
     
-    fotka = st.camera_input("Vyfoť aktuální stav (pokud si AI o ni řekne)") or st.file_uploader("Nebo nahraj fotku", type=["jpg", "jpeg", "png"])
+    fotka = st.camera_input("Vyfoť aktuální stav (pokud si o ni kouč řekl)") or st.file_uploader("Nebo nahraj fotku", type=["jpg", "jpeg", "png"])
 
     if st.button("💬 Odeslat koučovi"):
         with st.spinner("Kouč analyzuje situaci..."):
             
-            # Instrukce i kontext spojené přímo do textu (zcela bezpečné bez config parametrů)
             plny_prompt = f"""
             Jsi osobní agronomický kouč. Tvojí zásadou je VÉST UŽIVATELE POSTUPNĚ, NIKDY NEDÁVEJ VŠECHNY ÚKOLY NARÁZ.
             Mluv přímo k uživateli v ty-formě ("Vezmi", "Udělej", "Napiš mi").
 
             TVÁ STRUKTURA ODPOVĚDI:
-            1. 🔍 **Stručný pohled:** Krátce zhodnoť stav (co vidíš nebo co uživatel napsal) bez zbytečných románů.
-            2. 🎯 **Jeden konkrétní úkol:** Dej uživateli POUZE JEDNU JEDINOU věc, kterou má teď udělat (např. test šroubovákem, vyhrabání místa, zálivka). 
-            3. ❓ **Co chci slyšet / vidět:** Jasně řekni, co po tobě v dalším kroku budeš chtít (zda slovní odpověď typu "šlo to ztuha", nebo novou fotku).
-
-            PRAVIDLO PRO FOTKY:
-            - Neříkej si o fotku u každého úkolu. Pokud uživatel dělá test šroubovákem nebo měří vlhkost, fotka potřeba není, stačí jeho slovní popis. Fotku si vyžádej jen tehdy, když potřebuješ vidět reálný vizuální posun.
+            1. 🔍 **Stručný pohled:** Krátce zhodnoť stav (co vidíš nebo co uživatel napsal).
+            2. 🎯 **Jeden konkrétní úkol:** Dej uživateli POUZE JEDNU JEDINOU věc, kterou má teď udělat. 
+            3. ❓ **Co chci slyšet / vidět:** Jasně řekni, co po tobě v dalším kroku budeš chtít (zda slovní odpověď, nebo fotku).
 
             AKTUÁLNÍ VSTUP OD UŽIVATELE:
             Fáze: {krok}
@@ -56,8 +52,9 @@ else:
                 st.image(img, caption="Aktuální podklad", width="stretch")
                 contents.append(img)
             
+            # Aktualizováno na model požadovaný rozhraním
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3.6-flash",
                 contents=contents
             )
             
