@@ -16,7 +16,6 @@ if not api_key:
 else:
     client = genai.Client(api_key=api_key)
     
-    # Inicializace stavu chatu a strukturované časové osy (paměti)
     if "messages" not in st.session_state:
         st.session_state.messages = []
     
@@ -28,7 +27,6 @@ else:
     if "last_sent_photo_name" not in st.session_state:
         st.session_state.last_sent_photo_name = None
 
-    # Postranní panel nebo záložka pro přehled časové osy
     with st.expander("📅 Zahradní deník & Časová osa zásahů"):
         st.write("Tady vidíš historii klíčových akcí, ze kterých čerpá AI paměť:")
         for idx, item in enumerate(st.session_state.timeline):
@@ -45,7 +43,6 @@ else:
         ]
     )
 
-    # Vykreslení historie chatu
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             if message.get("image"):
@@ -91,7 +88,6 @@ else:
 
         with st.spinner("Kouč vyhodnocuje data a počasí..."):
             
-            # Sestavení paměti z časové osy pro AI
             historie_casove_osy = "\n".join([f"- {i['date']}: {i['action']} ({i['note']})" for i in st.session_state.timeline])
             
             historie_text = f"Fáze trávníku: {krok}\n\nČASOVÁ OSA HISTORIE ZÁSAHŮ:\n{historie_casove_osy}\n\n"
@@ -105,12 +101,14 @@ else:
             Jsi zkušený agronomický kouč. Mluv přímo v ty-formě ("Vezmi", "Udělej", "Napiš mi"). Mluv věcně, stručně a vynechávej prázdná klišé.
 
             Pravidla pro odpověď:
-            1. **Využití časové osy a počasí:** Vždy zohledni, kdy proběhlo poslední hnojení nebo zásah (viz časová osa). Vyhodnoť stav a případně doporuč další krok na základě uplynulého času. (Simuluj, že bereš v úvahu aktuální srážky a teploty pro zálivku a rozpuštění hnojiva).
-            2. **Automatický zápis do deníku:** Pokud uživatel hlásí, že dokončil nějakou významnou práci (hnojení, aerifikace, vertikutace, postřik), přidej na samý začátek své odpovědi skrytý příkaz v tomto přesném formátu: `[ZAPIS:Název akce|Stručný popis]`. Aplikace ho detekuje a sama uloží do časové osy.
-            3. **Běžná konverzace / Diagnostika / Nemůžu fotit:** Reaguj přátelsky, stručně, popřípadě si řekni o fotku nebo přejdi na slovní popis.
-            4. **Manuální vs. Strojové řešení:** Pokud lze činnost provést ručně i strojově, vždy nabídni obě varianty.
-            5. **ČEKACÍ FÁZE A PRŮBĚŽNÁ PÉČE:** Po náročném zásahu vyhlásit klidový režim (nechat působit), ale na dotaz dál radit s běžnou údržbou (zálivka, sečení).
-            6. **Jediný úkol, hodnoty a fyzické akce:** Dávej pouze jeden hlavní krok s přesnými parametry (hloubka, rozteče, gramáž, litry zálivky) a výzvou k hlášení po dokončení.
+            1. **Využití časové osy a počasí:** Zohledni, kdy proběhlo poslední hnojení nebo zásah z časové osy.
+            2. **Automatický zápis do deníku:** Pokud uživatel hlásí, že dokončil nějakou významnou práci, začni odpověď skrytým příkazem: `[ZAPIS:Název akce|Stručný popis]`.
+            3. **ABSOLUTNĚ JEDEN ÚKOL NA JEDNU ZPRÁVU (PŘÍSNÉ PRAVIDLO):** 
+               - Dávej vždy **pouze JEDINÝ, atomický krok**. 
+               - **Nikdy nekombinuj hnojení s pokyny k zálivce, sečení nebo jiným dalším akcím do jedné zprávy!** Pokud je úkol hnojení, piš *pouze* o hnojení. Zálivku, režim nebo aerifikaci řeš až v dalším kroku, až uživatel hnojení dokončí a potvrdí to.
+            4. **Manuální vs. Strojové řešení:** Pokud daný jeden úkol lze provést ručně i strojově, nabídni pro něj obě varianty (A/B).
+            5. **Fyzické akce a čekání:** Po zadání úkolu přidej pokyn, ať se uživatel ozve, až to bude mít hotové. Nech trávník odpočívat.
+            6. **Přesné hodnoty:** Uváděj konkrétní parametry (hloubka, rozteče, gramáž) výhradně pro tento jeden aktuální úkol.
             """
             
             contents = [plny_prompt]
@@ -139,7 +137,6 @@ else:
                     else:
                         time.sleep(1.5)
 
-            # Automatické parethování a zápis do časové osy, pokud AI vrátila značku [ZAPIS:...]
             if ai_reply and "[ZAPIS:" in ai_reply:
                 try:
                     start_idx = ai_reply.find("[ZAPIS:") + 7
@@ -149,14 +146,12 @@ else:
                     akce_nazev = casti[0]
                     akce_popis = casti[1] if len(casti) > 1 else "Provedeno na základě pokynu."
                     
-                    # Přidání do session state časové osy
                     st.session_state.timeline.append({
                         "date": str(date.today()),
                         "action": akce_nazev,
                         "note": akce_popis
                     })
                     
-                    # Odstranění tagu z textu, který vidí uživatel
                     ai_reply = ai_reply.replace(f"[ZAPIS:{zapis_content}]", "").strip()
                 except Exception:
                     pass
