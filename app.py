@@ -39,6 +39,19 @@ else:
                 st.image(message["image"], width="stretch")
             st.markdown(message["content"])
 
+    # Zjistíme, jestli poslední zpráva od AI vyžadovala fotku
+    posledni_zprava_ai = ""
+    if st.session_state.messages and st.session_state.messages[-1]["role"] == "assistant":
+        posledni_zprava_ai = st.session_state.messages[-1]["content"].lower()
+
+    # Tlačítko "Nemůžu teď fotit" se ukáže JEN tehdy, když AI v poslední zprávě výslovně žádala o fotku
+    chce_fotku = any(slovo in posledni_zprava_ai for slovo in ["fotku", "vyfotit", "snímek", "vyfoť"])
+    
+    tlacitko_bez_fotky_stisknuto = False
+    if chce_fotku:
+        if st.button("🚫 Nemůžu teď fotit (pokračovat bez fotky)"):
+            tlacitko_bez_fotky_stisknuto = True
+
     with st.expander("📷 Chce kouč fotku? Klikni sem pro nahrání"):
         fotka = st.file_uploader("Vyber fotku", type=["jpg", "jpeg", "png"], key="dynamic_photo")
 
@@ -47,8 +60,12 @@ else:
     current_photo_name = fotka.name if fotka else None
     is_new_photo = current_photo_name and (current_photo_name != st.session_state.last_photo_name)
 
-    if odpoved_uzivatele or is_new_photo:
-        user_content = odpoved_uzivatele if odpoved_uzivatele else "Posílám vyžádanou fotku."
+    # Akce se spustí, pokud uživatel něco napsal, nahrál novou fotku, nebo klikl na tlačítko "Nemůžu fotit"
+    if odpoved_uzivatele or is_new_photo or tlacitko_bez_fotky_stisknuto:
+        if tlacitko_bez_fotky_stisknuto:
+            user_content = "Nemůžu teď fotit (je tma / nemám u sebe foťák). Můžeme pokračovat bez fotky popisem?"
+        else:
+            user_content = odpoved_uzivatele if odpoved_uzivatele else "Posílám vyžádanou fotku."
         
         img_obj = None
         if is_new_photo:
@@ -75,8 +92,13 @@ else:
             Jsi zkušený agronomický kouč. Mluv přímo v ty-formě ("Vezmi", "Udělej", "Napiš mi").
 
             PRAVIDLA PRO ODPOVĚĎ:
-            1. **Běžná konverzace / Pozdravy / Poděkování:** Pokud uživatel píše jen obecnou věc (např. "Ahoj", "Děkuji", "Super, díky"), odpověz přátelsky, stručně, s lehkou trávníkovou tématikou (např. "Ahoj! Jak ti dnes s trávníkem pomůžu?" nebo "Nemáš zač, ať to roste!"). V takovém případě **nevyžaduj** žádný akční úkol.
-            2. **Diagnostika / Úkoly:** Pokud uživatel reaguje na úkol, popisuje stav nebo posílá data (např. výsledek šroubováku), zhodnoť to, posuň vyšetřování blíž k cíli a dej mu **pouze jeden konkrétní další úkol**.
+            1. **Běžná konverzace / Pozdravy / Poděkování:** Pokud uživatel píše jen obecnou věc, odpověz přátelsky, stručně, s lehkou trávníkovou tématikou.
+            2. **Fyzické testy (bez fotky):** U úkolů jako test šroubovákem, zkouška pevnosti kořenů tahem apod. fotku **nevyžaduj**, ptej se slovně na odpor nebo chování trávníku.
+            3. **Vizuální detaily (s fotkou):** Pokud jde o chorobu, skvrny nebo barvu stébel, vyzvěď fotku. 
+            4. **Situace "Nemůžu teď fotit":** Pokud uživatel hlásí, že fotit nemůže, vyhodnoť to:
+               - Pokud je fotka **zbytná**, pokus se s ním posunout dál čistě na základě slovního popisu (polož doplňující otázku).
+               - Pokud je fotka **absolutně nutná** k záchraně diagnózy, vysvětli mu to, řekni že bez ní nelze pokračovat, a zdvořile počkej, až fotku dodatečně nahraje.
+            5. **Diagnostika / Úkoly:** Vždy dávej **pouze jeden konkrétní další úkol**.
             """
             
             contents = [plny_prompt]
