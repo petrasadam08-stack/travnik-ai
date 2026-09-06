@@ -88,7 +88,7 @@ else:
 
         with st.spinner("Kouč vyhodnocuje data a počasí..."):
             
-            historie_casove_osy = "\n".join([f"- {i['date']}: {i['action']} ({i['note']})" for i in st.session_state.timeline])
+            historie_casove_osy = "\n".join([f"- {item['date']}: {item['action']} ({item['note']})" for item in st.session_state.timeline])
             
             historie_text = f"Fáze trávníku: {krok}\n\nČASOVÁ OSA HISTORIE ZÁSAHŮ:\n{historie_casove_osy}\n\n"
             for m in st.session_state.messages[:-1]:
@@ -102,7 +102,9 @@ else:
 
             Pravidla pro odpověď:
             1. **Využití časové osy a počasí:** Zohledni, kdy proběhlo poslední hnojení nebo zásah z časové osy.
-            2. **Automatický zápis do deníku:** Pokud uživatel hlásí, že dokončil nějakou významnou práci, začni odpověď skrytým příkazem: `[ZAPIS:Název akce|Stručný popis]`.
+            2. **Přísná pravidla pro zápis do časové osy (`[ZAPIS:...`):** 
+               - Tag `[ZAPIS:Název akce|Stručný popis]` použij **výhradně** tehdy, když uživatel explicitně hlásí, že dokončil reálnou, velkou fyzickou agronomickou práci (např. *Hnojení*, *Aerifikace*, *Vertikutace*, *Výsev*, *Postřik*). 
+               - **Nikdy nezapisuj** obyčejné dotazy, konverzace, pouhé diagnostické debaty, výběr variant ani dotazy na zálivku či údržbu! Ve většině případů (když jde jen o radu nebo dotaz) **žádný zápis neprováděj**.
             3. **ABSOLUTNĚ JEDEN ÚKOL NA JEDNU ZPRÁVU (PŘÍSNÉ PRAVIDLO):** 
                - Dávej vždy **pouze JEDINÝ, atomický krok**. 
                - **Nikdy nekombinuj hnojení s pokyny k zálivce, sečení nebo jiným dalším akcím do jedné zprávy!** Pokud je úkol hnojení, piš *pouze* o hnojení. Zálivku, režim nebo aerifikaci řeš až v dalším kroku, až uživatel hnojení dokončí a potvrdí to.
