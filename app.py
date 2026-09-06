@@ -1,12 +1,13 @@
 import time
+from datetime import date
 import streamlit as st
 from google import genai
 from PIL import Image
 
 st.set_page_config(page_title="Trávníkový Průvodce", page_icon="🌱", layout="centered")
 
-st.title("🌱 Osobní Trávníkový Průvodce")
-st.caption("Interaktivní agronomický kouč – krok za krokem")
+st.title("🌱 Osobní Trávníkový Průvodce – Verze 3")
+st.caption("Inteligentní agronomický kouč s časovou osou a pamětí")
 
 api_key = st.secrets.get("GEMINI_API_KEY")
 
@@ -15,11 +16,23 @@ if not api_key:
 else:
     client = genai.Client(api_key=api_key)
     
+    # Inicializace stavu chatu a strukturované časové osy (paměti)
     if "messages" not in st.session_state:
         st.session_state.messages = []
     
+    if "timeline" not in st.session_state:
+        st.session_state.timeline = [
+            {"date": str(date.today()), "action": "Založení deníku / Start péče", "note": "Počáteční stav trávníku."}
+        ]
+
     if "last_sent_photo_name" not in st.session_state:
         st.session_state.last_sent_photo_name = None
+
+    # Postranní panel nebo záložka pro přehled časové osy
+    with st.expander("📅 Zahradní deník & Časová osa zásahů"):
+        st.write("Tady vidíš historii klíčových akcí, ze kterých čerpá AI paměť:")
+        for idx, item in enumerate(st.session_state.timeline):
+            st.markdown(f"**{item['date']}** – `{item['action']}`: {item['note']}")
 
     krok = st.selectbox(
         "📍 V jaké fázi se právě nacházíš?",
@@ -39,7 +52,6 @@ else:
                 st.image(message["image"], width="stretch")
             st.markdown(message["content"])
 
-    # Zjistíme, jestli poslední zpráva od AI vyžadovala fotku
     posledni_zprava_ai = ""
     if st.session_state.messages and st.session_state.messages[-1]["role"] == "assistant":
         posledni_zprava_ai = st.session_state.messages[-1]["content"].lower()
@@ -62,7 +74,6 @@ else:
             img_obj = None
         else:
             user_content = odpoved_uzivatele
-            
             img_obj = None
             if fotka is not None:
                 current_photo_name = fotka.name
@@ -78,9 +89,12 @@ else:
 
         st.session_state.messages.append({"role": "user", "content": user_content, "image": img_obj})
 
-        with st.spinner("Kouč přemýšlí..."):
+        with st.spinner("Kouč vyhodnocuje data a počasí..."):
             
-            historie_text = f"Fáze trávníku: {krok}\n\n"
+            # Sestavení paměti z časové osy pro AI
+            historie_casove_osy = "\n".join([f"- {i['date']}: {i['action']} ({i['note']})" for i in st.session_state.timeline])
+            
+            historie_text = f"Fáze trávníku: {krok}\n\nČASOVÁ OSA HISTORIE ZÁSAHŮ:\n{historie_casove_osy}\n\n"
             for m in st.session_state.messages[:-1]:
                 historie_text += f"{m['role'].upper()}: {m['content']}\n"
             
@@ -91,20 +105,12 @@ else:
             Jsi zkušený agronomický kouč. Mluv přímo v ty-formě ("Vezmi", "Udělej", "Napiš mi"). Mluv věcně, stručně a vynechávej prázdná klišé.
 
             Pravidla pro odpověď:
-            1. **Běžná konverzace / Pozdravy / Poděkování:** Odpověz přátelsky, stručně, s trávníkovou tématikou.
-            2. **Diagnostika:** Vyhodnoť situaci a pokud je to pro diagnózu nejlepší, rovnou si řekni o fotku.
-            3. **Situace "Nemůžu teď fotit":** Pokud uživatel hlásí, že fotit nemůže, přejdi na slovní popis.
-            4. **Manuální vs. Strojové řešení:** 
-               - Pokud lze činnost provést jak ručně, tak strojově, **vždy nabídni obě varianty** (např. variantu A a variantu B).
-            5. **ČEKACÍ FÁZE A PRŮBĚŽNÁ PÉČE (DŮLEŽITÉ):** 
-               - Jakmile uživatel dokončí náročnější zásah (hnojení, aerifikace, postřik, vertikutace), **zakaž AI vymýšlet hned další radikální kroky**. 
-               - Místo toho AI vyhlásí klidový režim (např. *„Teď musíme nechat trávník a hnojivo/půdu pár dní v klidu, než to zabere.“*).
-               - **Zároveň ale uživateli na dotaz (nebo preventivně) normálně dál radíš s běžnou údržbou** – to znamená, že naprosto v klidu a detailně vysvětlíš, jak má teď probíhat zálivka (kolik litrů na metr, jak často), jak sekat, dokud tráva regeneruje.
-            6. **Jediný úkol a variabilita:** 
-               - Vždy dávej **pouze jeden hlavní krok** nebo se drž probíhající údržby.
-               - Větu s úkolem uvoď přirozenou výzvou, kterou **obměňuj** (*„Teď udělej tohle:“*, *„Vrhni se na tohle:“*, atd.).
-            7. **Konkrétní rozměry a hodnoty:** Uváděj přesné parametry (hloubka, rozteče, gramáž, litry zálivky).
-            8. **Fyzické akce:** Pokud zadáváš úkol vyžadující delší práci, přidej pokyn, ať se ozve, až to bude hotové.
+            1. **Využití časové osy a počasí:** Vždy zohledni, kdy proběhlo poslední hnojení nebo zásah (viz časová osa). Vyhodnoť stav a případně doporuč další krok na základě uplynulého času. (Simuluj, že bereš v úvahu aktuální srážky a teploty pro zálivku a rozpuštění hnojiva).
+            2. **Automatický zápis do deníku:** Pokud uživatel hlásí, že dokončil nějakou významnou práci (hnojení, aerifikace, vertikutace, postřik), přidej na samý začátek své odpovědi skrytý příkaz v tomto přesném formátu: `[ZAPIS:Název akce|Stručný popis]`. Aplikace ho detekuje a sama uloží do časové osy.
+            3. **Běžná konverzace / Diagnostika / Nemůžu fotit:** Reaguj přátelsky, stručně, popřípadě si řekni o fotku nebo přejdi na slovní popis.
+            4. **Manuální vs. Strojové řešení:** Pokud lze činnost provést ručně i strojově, vždy nabídni obě varianty.
+            5. **ČEKACÍ FÁZE A PRŮBĚŽNÁ PÉČE:** Po náročném zásahu vyhlásit klidový režim (nechat působit), ale na dotaz dál radit s běžnou údržbou (zálivka, sečení).
+            6. **Jediný úkol, hodnoty a fyzické akce:** Dávej pouze jeden hlavní krok s přesnými parametry (hloubka, rozteče, gramáž, litry zálivky) a výzvou k hlášení po dokončení.
             """
             
             contents = [plny_prompt]
@@ -132,6 +138,28 @@ else:
                         ai_reply = "Rozumím. Koukám na podklady, pojďme pokračovat – co přesně vnímáš jako hlavní změnu na trávníku?"
                     else:
                         time.sleep(1.5)
+
+            # Automatické parethování a zápis do časové osy, pokud AI vrátila značku [ZAPIS:...]
+            if ai_reply and "[ZAPIS:" in ai_reply:
+                try:
+                    start_idx = ai_reply.find("[ZAPIS:") + 7
+                    end_idx = ai_reply.find("]", start_idx)
+                    zapis_content = ai_reply[start_idx:end_idx]
+                    casti = zapis_content.split("|")
+                    akce_nazev = casti[0]
+                    akce_popis = casti[1] if len(casti) > 1 else "Provedeno na základě pokynu."
+                    
+                    # Přidání do session state časové osy
+                    st.session_state.timeline.append({
+                        "date": str(date.today()),
+                        "action": akce_nazev,
+                        "note": akce_popis
+                    })
+                    
+                    # Odstranění tagu z textu, který vidí uživatel
+                    ai_reply = ai_reply.replace(f"[ZAPIS:{zapis_content}]", "").strip()
+                except Exception:
+                    pass
 
             with st.chat_message("assistant"):
                 st.markdown(ai_reply)
