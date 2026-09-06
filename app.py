@@ -36,7 +36,8 @@ else:
         if st.button("🚀 Vyhodnotit tento krok"):
             with st.spinner("AI provádí hloubkovou analýzu kroku..."):
                 
-                system_instruction = """
+                # Instrukce vloženy přímo do promptu (zcela bezpečné pro libovolnou verzi API)
+                plny_prompt = f"""
                 Jsi specializovaný kouč pro zakládání a péči o trávník. Tvým úkolem je vést uživatele KROK ZA KROKEM.
                 Nikdy nedávej obecné poučky. Chovej se jako inspektor na stavbě trávníku.
 
@@ -50,17 +51,14 @@ else:
                 1. 🔍 **Hodnocení fotky:**
                 2. 🚦 **Verdikt:** 
                 3. ➡️ **Následující úkol pro uživatele:**
+
+                Aktuální krok procesu: {krok}
+                Poznámka od uživatele: {komentar}
                 """
                 
-                prompt_text = f"Aktuální krok procesu: {krok}. Poznámka od uživatele: {komentar}."
-                
-                # Změna na ověřený model gemini-2.0-flash
                 response = client.models.generate_content(
                     model="gemini-2.0-flash",
-                    contents=[img, prompt_text],
-                    config={
-                        'system_instruction': system_instruction
-                    }
+                    contents=[img, plny_prompt]
                 )
                 
                 st.markdown("---")
