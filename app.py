@@ -16,6 +16,10 @@ else:
     
     if "messages" not in st.session_state:
         st.session_state.messages = []
+    
+    # Paměť pro sledování, zda už byla fotka zpracována
+    if "last_photo_name" not in st.session_state:
+        st.session_state.last_photo_name = None
 
     krok = st.selectbox(
         "📍 V jaké fázi se právě nacházíš?",
@@ -40,22 +44,27 @@ else:
 
     odpoved_uzivatele = st.chat_input("Napiš odpověď koučovi...")
 
-    if odpoved_uzivatele or fotka:
+    # Zjistíme, jestli jde o reálně novou fotku
+    current_photo_name = fotka.name if fotka else None
+    is_new_photo = current_photo_name and (current_photo_name != st.session_state.last_photo_name)
+
+    if odpoved_uzivatele or is_new_photo:
         user_content = odpoved_uzivatele if odpoved_uzivatele else "Posílám vyžádanou fotku."
         
-        img_obj = Image.open(fotka) if fotka else None
+        img_obj = None
+        if is_new_photo:
+            img_obj = Image.open(fotka)
+            st.session_state.last_photo_name = current_photo_name
 
         with st.chat_message("user"):
             if img_obj:
                 st.image(img_obj, width="stretch")
             st.markdown(user_content)
 
-        # Uložíme do historie (fotku si paměť nechá pro zobrazení, ale AI ji nedostane opakovaně)
         st.session_state.messages.append({"role": "user", "content": user_content, "image": img_obj})
 
         with st.spinner("Kouč analyzuje tvou odpověď..."):
             
-            # Sestavení textové historie rozhovoru
             historie_text = f"Fáze trávníku: {krok}\n\n"
             for m in st.session_state.messages[:-1]:
                 historie_text += f"{m['role'].upper()}: {m['content']}\n"
@@ -67,7 +76,7 @@ else:
             Jsi zkušený agronomický kouč. Vedeš uživatele krok za krokem.
             
             PRAVIDLA:
-            1. Reaguj primárně na aktuální odpověď uživatele a posouvej vyšetřování kupředu k finální diagnóze. Nevracej se k hodnocení prvotní fotky, pokud už jsme ji rozebrali a udělali test.
+            1. Reaguj na aktuální odpověď uživatele a posouvej vyšetřování kupředu k finální diagnóze. 
             2. Mluv přímo k uživateli v ty-formě ("Vezmi", "Udělej", "Napiš mi").
             3. Dej POUZE JEDNU JEDINOU věc, kterou má teď udělat.
 
@@ -77,9 +86,9 @@ else:
             3. ❓ **Co chci slyšet / vidět:** Co po něm budeš chtít příště.
             """
             
-            # Posíláme primárně textový prompt s historií. Pokud uživatel *teď v této zprávě* nahrál novou fotku, přiložíme ji.
+            # AI dostane obrázek POUZE tehdy, pokud jde o nově přidanou fotku v této zprávě
             contents = [plny_prompt]
-            if img_obj:
+            if is_new_photo and img_obj:
                 contents.append(img_obj)
             
             try:
