@@ -68,6 +68,8 @@ else:
                 current_photo_name = fotka.name
                 if current_photo_name != st.session_state.last_sent_photo_name:
                     img_obj = Image.open(fotka)
+                    # Automatické zmenšení fotky kvůli rychlosti API
+                    img_obj.thumbnail((1024, 1024))
                     st.session_state.last_sent_photo_name = current_photo_name
 
         with st.chat_message("user"):
@@ -111,7 +113,6 @@ else:
             
             for pokus in range(max_pokusu):
                 try:
-                    # Bezpečné volání bez limitujícího timeoutu, model dostane dostatek času na zpracování fotky
                     response = client.models.generate_content(
                         model="gemini-3.1-flash-lite",
                         contents=contents
@@ -125,7 +126,6 @@ else:
                         ai_reply = "⚠️ Vyčerpán bezplatný limit požadavků pro tento den. Zkus to prosím za chvíli znovu."
                         break
                     if pokus == max_pokusu - 1:
-                        # Pokud by to přece jen selhalo, aplikace vytvoří plynulou náhradní odpověď, žádné chybové hlášky uživatele
                         ai_reply = "Rozumím. Koukám na podklady, pojďme pokračovat – co přesně vnímáš jako hlavní změnu na trávníku?"
                     else:
                         time.sleep(1.5)
