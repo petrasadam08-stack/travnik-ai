@@ -1,3 +1,4 @@
+import time
 import streamlit as st
 from google import genai
 from PIL import Image
@@ -82,14 +83,24 @@ else:
             if is_new_photo and img_obj:
                 contents.append(img_obj)
             
-            try:
-                response = client.models.generate_content(
-                    model="gemini-3.6-flash",
-                    contents=contents
-                )
-                ai_reply = response.text
-            except Exception as e:
-                ai_reply = f"Chyba od Google API: {e}"
+            # Automatické opakování při výpadku serveru (503)
+            ai_reply = None
+            max_ pokusu = 3
+            
+            for pokus in range(max_pokusu):
+                try:
+                    response = client.models.generate_content(
+                        model="gemini-3.6-flash",
+                        contents=contents
+                    )
+                    ai_reply = response.text
+                    break  # Pokud to prošlo, vyskočíme ze smyčky
+                except Exception as e:
+                    # Pokud je to poslední pokus, uložíme chybovou hlášku
+                    if pokus == max_pokusu - 1:
+                        ai_reply = f"Omlouvám se, server je teď plně vytížený. Zkus zprávu za chvíli zopakovat. (Chyba: {e})"
+                    else:
+                        time.sleep(2)  # Počkáme 2 sekundy před dalším pokusem a kolečko se dál točí
 
             with st.chat_message("assistant"):
                 st.markdown(ai_reply)
