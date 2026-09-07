@@ -6,8 +6,8 @@ from PIL import Image
 
 st.set_page_config(page_title="Trávníkový Průvodce", page_icon="🌱", layout="centered")
 
-st.title("🌱 Osobní Trávníkový Průvodce – Verze 3.8")
-st.caption("Inteligentní agronomický kouč – oprava chybového cyklu")
+st.title("🌱 Osobní Trávníkový Průvodce – Verze 3.9")
+st.caption("Inteligentní agronomický kouč – opravený model")
 
 api_key = st.secrets.get("GEMINI_API_KEY")
 
@@ -99,7 +99,7 @@ Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, zhodnoť s
                     
                     try:
                         resp = client.models.generate_content(
-                            model="gemini-2.5-flash",
+                            model="gemini-3.1-flash-lite",
                             contents=contents
                         )
                         inicialni_text = resp.text if resp and resp.text else "Zaregistroval jsem vstupní data. Jdeme na to!"
@@ -174,7 +174,6 @@ Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, zhodnoť s
 
 """
                 
-                # Sestavíme čistou historii chatu
                 konverzace_historie = ""
                 for m in st.session_state.messages:
                     konverzace_historie += f"{m['role'].upper()}: {m['content']}\n"
@@ -203,7 +202,7 @@ Pravidla:
                 ai_reply = None
                 try:
                     response = client.models.generate_content(
-                        model="gemini-2.5-flash",
+                        model="gemini-3.1-flash-lite",
                         contents=contents
                     )
                     if response and response.text:
