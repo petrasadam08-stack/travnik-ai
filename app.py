@@ -6,8 +6,8 @@ from PIL import Image
 
 st.set_page_config(page_title="Trávníkový Průvodce", page_icon="🌱", layout="centered")
 
-st.title("🌱 Osobní Trávníkový Průvodce – Verze 3.7 (Anti-zacyklení)")
-st.caption("Inteligentní agronomický kouč s bezchybnou stabilitou")
+st.title("🌱 Osobní Trávníkový Průvodce – Verze 3.8")
+st.caption("Inteligentní agronomický kouč – oprava chybového cyklu")
 
 api_key = st.secrets.get("GEMINI_API_KEY")
 
@@ -85,37 +85,26 @@ else:
                     "note": f"Stav: {stav_travniku}, Cíl: {rezim_startu}, Dosavadní zálivka: {frekvence_zalivky}"
                 })
 
-                if "Akutní řešení" in rezim_startu:
-                    init_prompt = f"""Uživatel právě spustil aplikaci v režimu AKUTNÍ ŘEŠENÍ. 
+                init_prompt = f"""Uživatel právě spustil aplikaci. 
 - Stav trávníku: {stav_travniku}
+- Cíl: {rezim_startu}
 - Dosavadní zálivka: {frekvence_zalivky}
 
-Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, zhodnoť zdravotní stav trávníku, pojmenuj problém a hned mu řekni PRVNÍ KONKRÉTNÍ KROK, co musí bezodkladně udělat k nápravě. Mluv přímo v ty-formě ("Vezmi", "Udělej")."""
-                else:
-                    init_prompt = f"""Uživatel právě spustil aplikaci v REŽIMU STANDARDNÍ ÚDRŽBA. 
-- Stav trávníku: {stav_travniku}
-- Dosavadní zálivka: {frekvence_zalivky}
+Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, zhodnoť stav trávníku a napiš mu první reakci a co má teď udělat. Mluv přímo v ty-formě."""
 
-Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, zhodnoť, zda trávník vypadá zdravě, a jasně mu řekni, co teď MŮŽE nebo NEMUSÍ dělat (zda je vše v pořádku a může jen odpočívat, nebo jestli je potřeba něco drobně upravit). Mluv přímo v ty-formě."""
-
-                with st.spinner("Kouč analyzuje vstupní fotku a data trávníku..."):
+                with st.spinner("Kouč analyzuje vstupní fotku a data..."):
                     contents = [init_prompt]
                     if init_img_obj:
                         contents.append(init_img_obj)
                     
-                    inicialni_text = None
                     try:
                         resp = client.models.generate_content(
                             model="gemini-2.5-flash",
                             contents=contents
                         )
-                        if resp and resp.text:
-                            inicialni_text = resp.text
+                        inicialni_text = resp.text if resp and resp.text else "Zaregistroval jsem vstupní data. Jdeme na to!"
                     except Exception as e:
-                        print(f"Chyba pri startu: {e}")
-
-                    if not inicialni_text:
-                        inicialni_text = f"Dívám se na tvoji úvodní fotku. Trávník vypadá na pohled svěže a zdravě. Vzhledem k tomu, že jsme ve standardním režimu, teď nemusíš dělat žádné velké zásahy – stačí jen udržovat stávající zálivku. Jak vnímáš jeho stav ty?"
+                        inicialni_text = f"Chyba při inicializaci AI: {e}"
 
                 st.session_state.messages.append({
                     "role": "assistant", 
@@ -185,59 +174,44 @@ Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, zhodnoť, 
 
 """
                 
-                historie_text = f"{profil_info}ČASOVÁ OSA HISTORIE ZÁSAHŮ:\n{historie_casove_osy}\n\n"
-                for m in st.session_state.messages[:-1]:
-                    historie_text += f"{m['role'].upper()}: {m['content']}\n"
-                
+                # Sestavíme čistou historii chatu
+                konverzace_historie = ""
+                for m in st.session_state.messages:
+                    konverzace_historie += f"{m['role'].upper()}: {m['content']}\n"
+
                 plny_prompt = f"""
-                {historie_text}
-                USER (aktuální zpráva): {user_content}
+{profil_info}
+Časová osa:
+{historie_casove_osy}
 
-                Jsi zkušený agronomický kouč. Mluv přímo v ty-formě ("Vezmi", "Udělej", "Napiš mi"). Mluv věcně, stručně a vynechávej prázdná klišé.
+Konverzační historie:
+{konverzace_historie}
 
-                Pravidla pro odpověď:
-                1. **Reaguj na to, co uživatel právě napsal:** Přečti si jeho poslední zprávu a naskoč na ni. Nikdy se neopakuj a nekladení dokola stejné otázky. Pokud uživatel popsal zálivku nebo odpověděl na tvůj dotaz, posuň se v péči dál (např. k hnojení, sekání nebo nastavení intervalu).
-                2. **Respektuj odpor uživatele k úkolům:** Pokud uživatel odmítne nějaký složitý test (např. měření kelímky) nebo napíše, že se mu to nechce dělat:
-                   - **Nikdy ho nenutť ani nekomentuj jeho lenost.** 
-                   - Okamžitě úkol zruš, nabídni rozumný odhad nebo univerzální bezpečný standard a posuň se bez řečí v péči dál.
-                3. **Pracuj s úvodním profilem:** Zohledni stav trávníku a dosavadní zálivku.
-                4. **Přísná pravidla pro zápis do časové osy (`[ZAPIS:...`):** 
-                   - Tag `[ZAPIS:Název akce|Stručný popis]` použij **výhradně** tehdy, když uživatel explicitně hlásí, že dokončil reálnou, velkou fyzickou agronomickou práci (např. *Hnojení*, *Aerifikace*, *Vertikutace*, *Výsev*, *Postřik*). 
-                   - **Nikdy nezapisuj** obyčejné dotazy, konverzace ani odmítnutí úkolů.
-                5. **ABSOLUTNĚ JEDEN ÚKOL NA JEDNU ZPRÁVU (PŘÍSNÉ PRAVIDLO):** 
-                   - Dávej vždy **pouze JEDINÝ, atomický krok**. 
-                   - **Nikdy nekombinuj více pokynů do jedné zprávy!**
-                6. **Manuální vs. Strojové řešení:** Pokud daný úkol lze provést ručně i strojově, nabídni obě varianty (A/B).
-                7. **Fyzické akce a čekání:** Po zadání úkolu přidej pokyn, ať se uživatel ozve, až to bude mít hotové. Nech trávník odpočívat.
-                """
+Jsi zkušený agronomický kouč. Odpověz na poslední zprávu uživatele. 
+Pravidla:
+1. Reaguj kontextuálně na to, co uživatel napsal, odpovídej na jeho otázky a neopakuj dokola stejné věty.
+2. Nedávej víc než jeden úkol najednou.
+3. Pokud uživatel odmítne úkol, akceptuj to a posuň se dál.
+4. Mluv v ty-formě, stručně a věcně.
+5. Pokud uživatel hlásí dokončení velké akce (Hnojení, Výsev, Aerifikace, Vertikutace, Postřik), zapiš to do formátu [ZAPIS:Název akce|Popis]. Jinak tag nepoužívej.
+"""
                 
                 contents = [plny_prompt]
                 if img_obj:
                     contents.append(img_obj)
                 
                 ai_reply = None
-                max_pokusu = 3
-                
-                for pokus in range(max_pokusu):
-                    try:
-                        response = client.models.generate_content(
-                            model="gemini-2.5-flash",
-                            contents=contents
-                        )
-                        if response and response.text:
-                            ai_reply = response.text
-                            break
-                    except Exception as e:
-                        error_str = str(e)
-                        print(f"Pokus {pokus+1} selhal: {error_str}")
-                        if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
-                            ai_reply = "⚠️ Vyčerpán bezplatný limit požadavků pro tento den. Zkus to prosím za chvíli znovu."
-                            break
-                        time.sleep(1)
-
-                # Bezpečná fallback odpověď, pokud by API selhalo třikrát za sebou (už nikdy žádná zaseknutá smyčka!)
-                if not ai_reply:
-                    ai_reply = "Rozumím tvé odpovědi. Zapsal jsem si to do kontextu. Pojďme se posunout dál – jak často podle tebe trávník stříháš?"
+                try:
+                    response = client.models.generate_content(
+                        model="gemini-2.5-flash",
+                        contents=contents
+                    )
+                    if response and response.text:
+                        ai_reply = response.text
+                    else:
+                        ai_reply = "Omlouvám se, nedostal jsem od modelu žádnou odpověď."
+                except Exception as e:
+                    ai_reply = f"Chyba při komunikaci s AI: {e}"
 
                 if ai_reply and "[ZAPIS:" in ai_reply:
                     try:
@@ -254,7 +228,7 @@ Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, zhodnoť, 
                             "note": akce_popis
                         })
                         
-                        ai_reply = ai_reply.replace(f"[ZAPIS:{zacykleni_fix}]" if 'zacykleni_fix' in locals() else f"[ZAPIS:{zapis_content}]", "").strip()
+                        ai_reply = ai_reply.replace(f"[ZAPIS:{zapis_content}]", "").strip()
                     except Exception:
                         pass
 
