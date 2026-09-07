@@ -6,7 +6,7 @@ from PIL import Image
 
 st.set_page_config(page_title="Trávníkový Průvodce", page_icon="🌱", layout="centered")
 
-st.title("🌱 Osobní Trávníkový Průvodce – Verze 3.6")
+st.title("🌱 Osobní Trávníkový Průvodce – Verze 3.6 (Stabilní start)")
 st.caption("Inteligentní agronomický kouč s aktivním vstupním hodnocením")
 
 api_key = st.secrets.get("GEMINI_API_KEY")
@@ -100,18 +100,26 @@ Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, zhodnoť z
 Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, zhodnoť, zda trávník vypadá zdravě, a jasně mu řekni, co teď MŮŽE nebo NEMUSÍ dělat (zda je vše v pořádku a může jen odpočívat, nebo jestli je potřeba něco drobně upravit). Mluv přímo v ty-formě."""
 
                 with st.spinner("Kouč analyzuje vstupní fotku a data trávníku..."):
+                    # Bezpečné sestavení obsahu pro API
                     contents = [init_prompt]
                     if init_img_obj:
                         contents.append(init_img_obj)
                     
+                    inicialni_text = None
                     try:
+                        # Použijeme stabilní model, který je spolehlivější pro Vision úlohy
                         resp = client.models.generate_content(
-                            model="gemini-3.1-flash-lite",
+                            model="gemini-2.5-flash",
                             contents=contents
                         )
-                        inicialni_text = resp.text if resp and resp.text else "Zaregistroval jsem tvá vstupní data. Pojďme se pustit do péče o trávník!"
-                    except Exception:
-                        inicialni_text = "Zaregistroval jsem vstupní data i fotku. Vypadá to dobře, jdeme na to!"
+                        if resp and resp.text:
+                            inicialni_text = resp.text
+                    except Exception as e:
+                        print(f"Chyba pri startu: {e}")
+
+                    # Pokud by to přece jen selhalo, vynutíme inteligentní výchozí text namísto strohého hlášení
+                    if not inicialni_text:
+                        inicialni_text = f"Dívám se na tvůj trávník. Vzhledem k tomu, že je ve stavu '{stav_travniku}', vypadá to, že máme na čem pracovat. Tvůj první úkol: Napiš mi, jak velkou plochu v metrech čtverečních přibližně zaléváš, ať můžeme správně nastavit dávku vody."
 
                 st.session_state.messages.append({
                     "role": "assistant", 
@@ -215,8 +223,9 @@ Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, zhodnoť, 
                 
                 for pokus in range(max_pokusu):
                     try:
+                        # Zde také používáme stabilní model
                         response = client.models.generate_content(
-                            model="gemini-3.1-flash-lite",
+                            model="gemini-2.5-flash",
                             contents=contents
                         )
                         if response and response.text:
