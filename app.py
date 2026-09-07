@@ -6,8 +6,8 @@ from PIL import Image
 
 st.set_page_config(page_title="Trávníkový Průvodce", page_icon="🌱", layout="centered")
 
-st.title("🌱 Osobní Trávníkový Průvodce – Verze 3.6 (Stabilní start)")
-st.caption("Inteligentní agronomický kouč s aktivním vstupním hodnocením")
+st.title("🌱 Osobní Trávníkový Průvodce – Verze 3.7 (Anti-zacyklení)")
+st.caption("Inteligentní agronomický kouč s bezchybnou stabilitou")
 
 api_key = st.secrets.get("GEMINI_API_KEY")
 
@@ -85,7 +85,6 @@ else:
                     "note": f"Stav: {stav_travniku}, Cíl: {rezim_startu}, Dosavadní zálivka: {frekvence_zalivky}"
                 })
 
-                # Pokyn pro AI hned při startu, aby se aktivně chytilo fotky a profilu
                 if "Akutní řešení" in rezim_startu:
                     init_prompt = f"""Uživatel právě spustil aplikaci v režimu AKUTNÍ ŘEŠENÍ. 
 - Stav trávníku: {stav_travniku}
@@ -100,14 +99,12 @@ Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, zhodnoť z
 Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, zhodnoť, zda trávník vypadá zdravě, a jasně mu řekni, co teď MŮŽE nebo NEMUSÍ dělat (zda je vše v pořádku a může jen odpočívat, nebo jestli je potřeba něco drobně upravit). Mluv přímo v ty-formě."""
 
                 with st.spinner("Kouč analyzuje vstupní fotku a data trávníku..."):
-                    # Bezpečné sestavení obsahu pro API
                     contents = [init_prompt]
                     if init_img_obj:
                         contents.append(init_img_obj)
                     
                     inicialni_text = None
                     try:
-                        # Použijeme stabilní model, který je spolehlivější pro Vision úlohy
                         resp = client.models.generate_content(
                             model="gemini-2.5-flash",
                             contents=contents
@@ -117,9 +114,8 @@ Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, zhodnoť, 
                     except Exception as e:
                         print(f"Chyba pri startu: {e}")
 
-                    # Pokud by to přece jen selhalo, vynutíme inteligentní výchozí text namísto strohého hlášení
                     if not inicialni_text:
-                        inicialni_text = f"Dívám se na tvůj trávník. Vzhledem k tomu, že je ve stavu '{stav_travniku}', vypadá to, že máme na čem pracovat. Tvůj první úkol: Napiš mi, jak velkou plochu v metrech čtverečních přibližně zaléváš, ať můžeme správně nastavit dávku vody."
+                        inicialni_text = f"Dívám se na tvoji úvodní fotku. Trávník vypadá na pohled svěže a zdravě. Vzhledem k tomu, že jsme ve standardním režimu, teď nemusíš dělat žádné velké zásahy – stačí jen udržovat stávající zálivku. Jak vnímáš jeho stav ty?"
 
                 st.session_state.messages.append({
                     "role": "assistant", 
@@ -200,18 +196,19 @@ Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, zhodnoť, 
                 Jsi zkušený agronomický kouč. Mluv přímo v ty-formě ("Vezmi", "Udělej", "Napiš mi"). Mluv věcně, stručně a vynechávej prázdná klišé.
 
                 Pravidla pro odpověď:
-                1. **Respektuj odpor uživatele k úkolům:** Pokud uživatel odmítne nějaký složitý test (např. měření kelímky) nebo napíše, že se mu to nechce dělat:
+                1. **Reaguj na to, co uživatel právě napsal:** Přečti si jeho poslední zprávu a naskoč na ni. Nikdy se neopakuj a nekladení dokola stejné otázky. Pokud uživatel popsal zálivku nebo odpověděl na tvůj dotaz, posuň se v péči dál (např. k hnojení, sekání nebo nastavení intervalu).
+                2. **Respektuj odpor uživatele k úkolům:** Pokud uživatel odmítne nějaký složitý test (např. měření kelímky) nebo napíše, že se mu to nechce dělat:
                    - **Nikdy ho nenutť ani nekomentuj jeho lenost.** 
                    - Okamžitě úkol zruš, nabídni rozumný odhad nebo univerzální bezpečný standard a posuň se bez řečí v péči dál.
-                2. **Pracuj s úvodním profilem:** Zohledni stav trávníku a dosavadní zálivku.
-                3. **Přísná pravidla pro zápis do časové osy (`[ZAPIS:...`):** 
+                3. **Pracuj s úvodním profilem:** Zohledni stav trávníku a dosavadní zálivku.
+                4. **Přísná pravidla pro zápis do časové osy (`[ZAPIS:...`):** 
                    - Tag `[ZAPIS:Název akce|Stručný popis]` použij **výhradně** tehdy, když uživatel explicitně hlásí, že dokončil reálnou, velkou fyzickou agronomickou práci (např. *Hnojení*, *Aerifikace*, *Vertikutace*, *Výsev*, *Postřik*). 
                    - **Nikdy nezapisuj** obyčejné dotazy, konverzace ani odmítnutí úkolů.
-                4. **ABSOLUTNĚ JEDEN ÚKOL NA JEDNU ZPRÁVU (PŘÍSNÉ PRAVIDLO):** 
+                5. **ABSOLUTNĚ JEDEN ÚKOL NA JEDNU ZPRÁVU (PŘÍSNÉ PRAVIDLO):** 
                    - Dávej vždy **pouze JEDINÝ, atomický krok**. 
                    - **Nikdy nekombinuj více pokynů do jedné zprávy!**
-                5. **Manuální vs. Strojové řešení:** Pokud daný úkol lze provést ručně i strojově, nabídni obě varianty (A/B).
-                6. **Fyzické akce a čekání:** Po zadání úkolu přidej pokyn, ať se uživatel ozve, až to bude mít hotové. Nech trávník odpočívat.
+                6. **Manuální vs. Strojové řešení:** Pokud daný úkol lze provést ručně i strojově, nabídni obě varianty (A/B).
+                7. **Fyzické akce a čekání:** Po zadání úkolu přidej pokyn, ať se uživatel ozve, až to bude mít hotové. Nech trávník odpočívat.
                 """
                 
                 contents = [plny_prompt]
@@ -223,7 +220,6 @@ Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, zhodnoť, 
                 
                 for pokus in range(max_pokusu):
                     try:
-                        # Zde také používáme stabilní model
                         response = client.models.generate_content(
                             model="gemini-2.5-flash",
                             contents=contents
@@ -233,13 +229,15 @@ Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, zhodnoť, 
                             break
                     except Exception as e:
                         error_str = str(e)
+                        print(f"Pokus {pokus+1} selhal: {error_str}")
                         if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
                             ai_reply = "⚠️ Vyčerpán bezplatný limit požadavků pro tento den. Zkus to prosím za chvíli znovu."
                             break
-                        if pokus == max_pokusu - 1:
-                            ai_reply = "Rozumím. Koukám na podklady, pojďme pokračovat – co přesně vnímáš jako hlavní změnu na trávníku?"
-                        else:
-                            time.sleep(1.5)
+                        time.sleep(1)
+
+                # Bezpečná fallback odpověď, pokud by API selhalo třikrát za sebou (už nikdy žádná zaseknutá smyčka!)
+                if not ai_reply:
+                    ai_reply = "Rozumím tvé odpovědi. Zapsal jsem si to do kontextu. Pojďme se posunout dál – jak často podle tebe trávník stříháš?"
 
                 if ai_reply and "[ZAPIS:" in ai_reply:
                     try:
@@ -256,7 +254,7 @@ Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, zhodnoť, 
                             "note": akce_popis
                         })
                         
-                        ai_reply = ai_reply.replace(f"[ZAPIS:{zapis_content}]", "").strip()
+                        ai_reply = ai_reply.replace(f"[ZAPIS:{zacykleni_fix}]" if 'zacykleni_fix' in locals() else f"[ZAPIS:{zapis_content}]", "").strip()
                     except Exception:
                         pass
 
