@@ -6,8 +6,8 @@ from PIL import Image
 
 st.set_page_config(page_title="Trávníkový Průvodce", page_icon="🌱", layout="centered")
 
-st.title("🌱 Osobní Trávníkový Průvodce – Verze 3.5")
-st.caption("Inteligentní agronomický kouč s úvodním onboardingem a pamětí")
+st.title("🌱 Osobní Trávníkový Průvodce – Verze 3.6")
+st.caption("Inteligentní agronomický kouč s aktivním vstupním hodnocením")
 
 api_key = st.secrets.get("GEMINI_API_KEY")
 
@@ -85,13 +85,21 @@ else:
                     "note": f"Stav: {stav_travniku}, Cíl: {rezim_startu}, Dosavadní zálivka: {frekvence_zalivky}"
                 })
 
-                # Pokyn pro AI hned při startu, aby zhodnotila fotku a řekla co dělat/nedělat
+                # Pokyn pro AI hned při startu, aby se aktivně chytilo fotky a profilu
                 if "Akutní řešení" in rezim_startu:
-                    init_prompt = f"Uživatel právě spustil aplikaci v režimu AKUTNÍ ŘEŠENÍ. Stav trávníku: {stav_travniku}, dosavadní zálivka: {frekvence_zalivky}. Podívej se na jeho úvodní fotku, zhodnoť zdravotní stav trávníku a řekni mu, co teď musí bezodkladně udělat k nápravě."
-                else:
-                    init_prompt = f"Uživatel právě spustil aplikaci v REŽIMU STANDARDNÍ ÚDRŽBA. Stav trávníku: {stav_travniku}, dosavadní zálivka: {frekvence_zalivky}. Podívej se na jeho úvodní fotku, zhodnoť, zda trávník vypadá zdravě, a jasně mu řekni, co teď MŮŽE nebo NEMUSÍ dělat (zda je vše v pořádku a může jen odpočívat, nebo jestli je potřeba něco drobně upravit)."
+                    init_prompt = f"""Uživatel právě spustil aplikaci v režimu AKUTNÍ ŘEŠENÍ. 
+- Stav trávníku: {stav_travniku}
+- Dosavadní zálivka: {frekvence_zalivky}
 
-                with st.spinner("Kouč analyzuje vstupní fotku a data..."):
+Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, zhodnoť zdravotní stav trávníku, pojmenuj problém a hned mu řekni PRVNÍ KONKRÉTNÍ KROK, co musí bezodkladně udělat k nápravě. Mluv přímo v ty-formě ("Vezmi", "Udělej")."""
+                else:
+                    init_prompt = f"""Uživatel právě spustil aplikaci v REŽIMU STANDARDNÍ ÚDRŽBA. 
+- Stav trávníku: {stav_travniku}
+- Dosavadní zálivka: {frekvence_zalivky}
+
+Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, zhodnoť, zda trávník vypadá zdravě, a jasně mu řekni, co teď MŮŽE nebo NEMUSÍ dělat (zda je vše v pořádku a může jen odpočívat, nebo jestli je potřeba něco drobně upravit). Mluv přímo v ty-formě."""
+
+                with st.spinner("Kouč analyzuje vstupní fotku a data trávníku..."):
                     contents = [init_prompt]
                     if init_img_obj:
                         contents.append(init_img_obj)
@@ -103,7 +111,7 @@ else:
                         )
                         inicialni_text = resp.text if resp and resp.text else "Zaregistroval jsem tvá vstupní data. Pojďme se pustit do péče o trávník!"
                     except Exception:
-                        inicialni_text = "Zaregistroval jsem vstupní data i fotku. Jdeme na to!"
+                        inicialni_text = "Zaregistroval jsem vstupní data i fotku. Vypadá to dobře, jdeme na to!"
 
                 st.session_state.messages.append({
                     "role": "assistant", 
