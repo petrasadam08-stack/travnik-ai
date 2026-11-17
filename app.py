@@ -6,8 +6,8 @@ from PIL import Image
 
 st.set_page_config(page_title="Trávníkový Průvodce", page_icon="🌱", layout="centered")
 
-st.title("🌱 Osobní Trávníkový Průvodce – Verze 3.12")
-st.caption("Inteligentní agronomický kouč – ověřené postupy ČR a ochrana proti výpadkům")
+st.title("🌱 Osobní Trávníkový Průvodce – Verze 3.13")
+st.caption("Inteligentní agronomický kouč – ověřené postupy ČR a srozumitelné kroky")
 
 # --- OVĚŘENÁ AGRONOMICKÁ ZÁKLADNA (METODIKA ČR / STŘEDNÍ EVROPA) ---
 AGRONOMICKA_BAZE_ZNALOSTI = """
@@ -19,7 +19,7 @@ OVĚŘENÉ ZÁSADY PÉČE O TRÁVNÍK V ČR (ČZU / METODIKA TRÁVNÍKÁŘSTVÍ 
   b) Popálení hnojivem nebo močí,
   c) Houbová choroba (např. plíseň sněžná, kornatka, padání klíčků).
 - NIKDY nestřílej finální diagnózu choroby hned z jedné fotky a NIKDY v první zprávě neposílej uživatele kupovat chemii.
-- Nejdřív nechej uživatele udělat rychlé ověření na místě (např. zapíchnout prst 2–3 cm do hlíny přímo v suchém místě pro zjištění vlhkosti, nebo zkontrolovat zblízka stébla, zda na nich je bílý/růžový povlak či sliz).
+- Nejdřív nechej uživatele udělat rychlé ověření na místě (např. zapíchnout prst nebo šroubovák do hlíny přímo v suchém místě pro zjištění vlhkosti a zhutnění, nebo zkontrolovat zblízka stébla, zda na nich je bílý/růžový povlak či sliz).
 
 2. LEGISLATIVA ČR A POUŽITÍ CHEMIE:
 - V ČR a EU je většina silných fungicidů (zejména přípravky běžné v USA) pro hobby zahrady zakázaná nebo nedostupná.
@@ -31,6 +31,10 @@ OVĚŘENÉ ZÁSADY PÉČE O TRÁVNÍK V ČR (ČZU / METODIKA TRÁVNÍKÁŘSTVÍ 
 - Sečení: Platí pravidlo jedné třetiny (nikdy neuseknout víc než 1/3 délky stébla najednou). Běžná výška je 3,5–5 cm, v horku a suchu zvednout na 5–6 cm. Roztřepené, našedlé konečky listů znamenají tupý nůž sekačky, nikoli chorobu.
 - Výživa (NPK): Jaro až léto: hnojiva s vyšším podílem dusíku (N) pro růst a hustotu (účinek běžného hnojiva je 4–8 týdnů). Pozdní léto a podzim (od září): podzimní hnojiva se sníženým dusíkem a vysokým draslíkem (K) pro vyzrávání pletiv a odolnost proti vymrzání a plísni sněžné (nikdy na podzim nedávat čistě dusíkatá jarní hnojiva). Čerstvý výsev hnojit jen speciálním startovacím hnojivem s fosforem (P).
 - Mech: Není primárně choroba, ale důsledek stínu, utužené půdy, příliš nízkého sečení nebo hladovění trávníku. Řeší se úpravou podmínek a provzdušněním.
+
+4. AERIFIKACE VS. VERTIKUTACE (BEZPEČNÉ PROVZDUŠNĚNÍ):
+- PŘÍSNÝ ZÁKAZ VERTIKUTACE U MLADÝCH TRÁVNÍKŮ: Pokud byl trávník zasetý před méně než 1 rokem, NIKDY nedoporučuj vertikutaci (ani ručními vertikutačními hráběmi). Mladé rostliny nemají prokořeněný drn a nože by je vytrhaly. Vertikutace patří jen na starší, plně zapojený trávník.
+- Šetrné provzdušnění (aerifikace vidlemi) pro zhutnělou půdu: Použijí se obyčejné rycí vidle. Zapíchnou se kolmo dolů do hloubky 10–15 cm, topůrkem se jen lehce zakýve o 2–3 cm dopředu a dozadu (tím se v hlíně otevře kanálek pro vodu a vzduch) a vidle se vytáhnou rovně nahoru BEZ páčení hlíny nahoru, aby se nepotrhaly kořínky a nezničila rovina.
 """
 
 def zavolej_gemini(client, contents):
@@ -52,7 +56,6 @@ def zavolej_gemini(client, contents):
                 if "503" in err or "UNAVAILABLE" in err or "500" in err:
                     time.sleep(1.5)
                     continue
-                # U jiné chyby (např. nepodporovaný model) přejde rovnou na další model
                 break
     return None, "⚠️ Servery AI jsou teď dočasně přetížené (chyba 503). Zkus to prosím za pár vteřin znovu."
 
@@ -152,11 +155,12 @@ Jsi zkušený agronomický kouč pro české podmínky. Podívej se na úvodní 
 PŘÍSNÁ PRAVIDLA:
 1. Vycházej z výše uvedených ověřených zásad. Pokud narazíš na specifický problém, který v nich není popsaný, máš volnou ruku použít své obecné agronomické znalosti, ale vždy zohledni konkrétní situaci uživatele a podmínky v ČR.
 2. BEZPEČNÁ DIAGNOSTIKA: Pokud jsou na fotce žluté nebo hnědé skvrny, neříkej hned s jistotou, že jde o konkrétní chorobu, a NIKDY v této první zprávě nedoporučuj chemii (fungicidy). Nejdřív nechej uživatele ověřit stav na místě (např. kontrola vlhkosti hlíny prstem v suchém místě nebo detail stébel), abyste vyloučili sucho či spálení hnojivem.
-3. LIMIT ÚKOLŮ: Dej uživateli VŽDY MAXIMÁLNĚ 1 AŽ 2 KONKRÉTNÍ ÚKOLY (nikdy ne 3 a více úkolů najednou, uživatele to odradí!).
-4. Respektuj údaj o posledním hnojení (pokud bylo hnojeno v posledních 2 týdnech, v žádném případě nedoporučuj další hnojení).
-5. Nepřidávej na konec žádné další „tipy pro příště“ ani vedlejší otázky navíc.
-6. Pokud je zvolena standardní údržba a trávník vypadá zdravě, klidně řekni, že teď nemusí dělat nic (maximálně 1 drobný udržovací krok).
-7. Mluv přímo v ty-formě, stručně a věcně."""
+3. ŽÁDNÝ ODBORNÝ ŽARGON BEZ NÁVODU: Uživatel je laik. Nikdy mu jen neřekni odborný název úkonu (např. „udělej aerifikaci“ nebo „vertikutaci“). Vždy v 1–2 stručných větách napiš, co má vyloženě vzít do ruky a jak to udělat. Nepiš zbytečně dlouhé eseje (na detaily se uživatel případně doptá), ale základní provedení musí být hned jasné.
+4. LIMIT ÚKOLŮ: Dej uživateli VŽDY MAXIMÁLNĚ 1 AŽ 2 KONKRÉTNÍ ÚKOLY (nikdy ne 3 a více úkolů najednou, uživatele to odradí!).
+5. Respektuj údaj o posledním hnojení (pokud bylo hnojeno v posledních 2 týdnech, v žádném případě nedoporučuj další hnojení).
+6. Nepřidávej na konec žádné další „tipy pro příště“ ani vedlejší otázky navíc.
+7. Pokud je zvolena standardní údržba a trávník vypadá zdravě, klidně řekni, že teď nemusí dělat nic (maximálně 1 drobný udržovací krok).
+8. Mluv přímo v ty-formě, stručně a věcně."""
 
                 with st.spinner("Kouč analyzuje vstupní fotku a data..."):
                     contents = [init_prompt]
@@ -269,13 +273,14 @@ Konverzační historie:
 
 Jsi zkušený agronomický kouč pro české podmínky. Odpověz na poslední zprávu uživatele. 
 Pravidla:
-1. Vycházej z ověřených zásad péče výše. Pokud je problém specifický a v zásadách chybí, máš volnou ruku použít své obecné agronomické znalosti, ale vždy zohledni situaci uživatele, jeho profil a podmínky v ČR.
+1. Vycházej z ověřených zásad péče výše (včetně zákazu vertikutace mladých trávníků do 1 roku). Pokud je problém specifický a v zásadách chybí, máš volnou ruku použít své obecné agronomické znalosti, ale vždy zohledni situaci uživatele, jeho profil a podmínky v ČR.
 2. BEZPEČNÁ DIAGNOSTIKA A ZÁKAZ ZAKÁZANÉ CHEMIE: Než vyslovíš diagnózu choroby, vždy si nejdřív ověř fakta na místě (vlhkost půdy, detail stébel, stav nože sekačky), abys vyloučil prosté sucho nebo chybu v údržbě. Nikdy nedoporučuj v ČR/EU zakázané nebo neregistrované postřiky; upřednostni pěstební úpravy a v ČR legálně dostupné přípravky.
-3. Reaguj kontextuálně na to, co uživatel napsal, odpovídej na jeho otázky a neopakuj dokola stejné věty.
-4. PŘÍSNÝ LIMIT ÚKOLŮ: V jedné zprávě dej uživateli VŽDY MAXIMÁLNĚ 1 AŽ 2 KONKRÉTNÍ ÚKOLY (ideálně 1, absolutní maximum jsou 2). Nikdy nevypisuj seznamy o 3 a více úkolech ani nepřidávej další „tipy navíc“ na konec, protože dlouhý seznam uživatele odradí.
-5. Pokud uživatel odmítne nějaký složitější úkol nebo test, bez řečí to akceptuj, použij bezpečný odhad a posuň se dál.
-6. Mluv v ty-formě, stručně a věcně.
-7. Pokud uživatel hlásí dokončení velké akce (Hnojení, Výsev, Aerifikace, Vertikutace, Postřik), zapiš to do formátu [ZAPIS:Název akce|Popis]. Jinak tag nepoužívej.
+3. ŽÁDNÝ ODBORNÝ ŽARGON BEZ NÁVODU: Uživatel je laik. Nikdy nepoužij jen odborný termín (např. „aerifikace“, „vertikutace“, „pískování“) bez okamžitého vysvětlení, co má uživatel reálně udělat. Ke každému úkonu přidej 1–2 stručné věty s konkrétním postupem (jaký nástroj vzít a jak s ním pracovat, např. zapíchnout vidle 10–15 cm kolmo, lehce zakývat a vytáhnout bez páčení). Nepiš dlouhé eseje (na detaily se uživatel doptá), ale musí přesně vědět, co má dělat.
+4. Reaguj kontextuálně na to, co uživatel napsal, odpovídej na jeho otázky a neopakuj dokola stejné věty.
+5. PŘÍSNÝ LIMIT ÚKOLŮ: V jedné zprávě dej uživateli VŽDY MAXIMÁLNĚ 1 AŽ 2 KONKRÉTNÍ ÚKOLY (ideálně 1, absolutní maximum jsou 2). Nikdy nevypisuj seznamy o 3 a více úkolech ani nepřidávej další „tipy navíc“ na konec, protože dlouhý seznam uživatele odradí.
+6. Pokud uživatel odmítne nějaký složitější úkol nebo test, bez řečí to akceptuj, použij bezpečný odhad a posuň se dál.
+7. Mluv v ty-formě, stručně a věcně.
+8. Pokud uživatel hlásí dokončení velké akce (Hnojení, Výsev, Aerifikace, Vertikutace, Postřik), zapiš to do formátu [ZAPIS:Název akce|Popis]. Jinak tag nepoužívej.
 """
                 
                 contents = [plny_prompt]
