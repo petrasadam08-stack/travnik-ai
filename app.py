@@ -6,8 +6,8 @@ from PIL import Image
 
 st.set_page_config(page_title="Trávníkový Průvodce", page_icon="🌱", layout="centered")
 
-st.title("🌱 Osobní Trávníkový Průvodce – Verze 3.9")
-st.caption("Inteligentní agronomický kouč – opravený model")
+st.title("🌱 Osobní Trávníkový Průvodce – Verze 3.10")
+st.caption("Inteligentní agronomický kouč – max. 2 úkoly na zprávu")
 
 api_key = st.secrets.get("GEMINI_API_KEY")
 
@@ -90,7 +90,12 @@ else:
 - Cíl: {rezim_startu}
 - Dosavadní zálivka: {frekvence_zalivky}
 
-Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, zhodnoť stav trávníku a napiš mu první reakci a co má teď udělat. Mluv přímo v ty-formě."""
+Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, stručně zhodnoť stav trávníku a napiš mu, co má teď udělat.
+PŘÍSNÁ PRAVIDLA:
+1. Dej uživateli VŽDY MAXIMÁLNĚ 1 AŽ 2 KONKRÉTNÍ ÚKOLY (nikdy ne 3, 4 nebo 5 úkolů najednou, uživatele to odradí!).
+2. Nepřidávej na konec žádné další „tipy pro příště“ ani vedlejší otázky navíc. Další věci vyřešíte až v dalším kroku.
+3. Pokud je zvolena standardní údržba a trávník vypadá zdravě, klidně řekni, že teď nemusí dělat nic (maximálně 1 drobný udržovací krok).
+4. Mluv přímo v ty-formě, stručně a věcně."""
 
                 with st.spinner("Kouč analyzuje vstupní fotku a data..."):
                     contents = [init_prompt]
@@ -189,8 +194,8 @@ Konverzační historie:
 Jsi zkušený agronomický kouč. Odpověz na poslední zprávu uživatele. 
 Pravidla:
 1. Reaguj kontextuálně na to, co uživatel napsal, odpovídej na jeho otázky a neopakuj dokola stejné věty.
-2. Nedávej víc než jeden úkol najednou.
-3. Pokud uživatel odmítne úkol, akceptuj to a posuň se dál.
+2. PŘÍSNÝ LIMIT ÚKOLŮ: V jedné zprávě dej uživateli VŽDY MAXIMÁLNĚ 1 AŽ 2 KONKRÉTNÍ ÚKOLY (ideálně 1, absolutní maximum jsou 2). Nikdy nevypisuj seznamy o 3 a více úkolech ani nepřidávej další „tipy navíc“ na konec, protože dlouhý seznam uživatele odradí. Další kroky řeš až poté, co splní ty aktuální.
+3. Pokud uživatel odmítne nějaký složitější úkol nebo test, bez řečí to akceptuj, použij bezpečný odhad a posuň se dál.
 4. Mluv v ty-formě, stručně a věcně.
 5. Pokud uživatel hlásí dokončení velké akce (Hnojení, Výsev, Aerifikace, Vertikutace, Postřik), zapiš to do formátu [ZAPIS:Název akce|Popis]. Jinak tag nepoužívej.
 """
@@ -234,5 +239,5 @@ Pravidla:
                 with st.chat_message("assistant"):
                     st.markdown(ai_reply)
                 
-                st.session_state.messages.append({"role": "assistant", "content": ai_reply, "image": img_obj if 'img_obj' in locals() else None})
+                st.session_state.messages.append({"role": "assistant", "content": ai_reply, "image": None})
                 st.rerun()
