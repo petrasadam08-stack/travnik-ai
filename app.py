@@ -6,8 +6,32 @@ from PIL import Image
 
 st.set_page_config(page_title="Trávníkový Průvodce", page_icon="🌱", layout="centered")
 
-st.title("🌱 Osobní Trávníkový Průvodce – Verze 3.10")
-st.caption("Inteligentní agronomický kouč – max. 2 úkoly na zprávu")
+st.title("🌱 Osobní Trávníkový Průvodce – Verze 3.11")
+st.caption("Inteligentní agronomický kouč – ověřené postupy ČR a bezpečná diagnostika")
+
+# --- OVĚŘENÁ AGRONOMICKÁ ZÁKLADNA (METODIKA ČR / STŘEDNÍ EVROPA) ---
+AGRONOMICKA_BAZE_ZNALOSTI = """
+OVĚŘENÉ ZÁSADY PÉČE O TRÁVNÍK V ČR (ČZU / METODIKA TRÁVNÍKÁŘSTVÍ / REGISTR ÚKZÚZ):
+
+1. POVINNÝ DIAGNOSTICKÝ PROTOKOL (NEŽ VYSLOVÍŠ DIAGNÓZU):
+- Hnědé nebo žluté skvrny na fotce mají 3 nejčastější příčiny, které vypadají téměř stejně:
+  a) Lokální sucho / nerovnoměrný dosah zálivky,
+  b) Popálení hnojivem nebo močí,
+  c) Houbová choroba (např. plíseň sněžná, kornatka, padání klíčků).
+- NIKDY nestřílej finální diagnózu choroby hned z jedné fotky a NIKDY v první zprávě neposílej uživatele kupovat chemii.
+- Nejdřív nechej uživatele udělat rychlé ověření na místě (např. zapíchnout prst 2–3 cm do hlíny přímo v suchém místě pro zjištění vlhkosti, nebo zkontrolovat zblízka stébla, zda na nich je bílý/růžový povlak či sliz).
+
+2. LEGISLATIVA ČR A POUŽITÍ CHEMIE:
+- V ČR a EU je většina silných fungicidů (zejména přípravky běžné v USA) pro hobby zahrady zakázaná nebo nedostupná.
+- NIKDY nedoporučuj neregistrované postřiky ani neuváděj obecné výzvy „kup si jakýkoliv fungicid“.
+- Základem nápravy v ČR jsou pěstební opatření (úprava režimu zálivky, provzdušnění, úprava výšky seče, vyvážená výživa) a v ČR legálně dostupné pomocné či biologické přípravky (např. mykoparazitická houba Pythium oligandrum – např. Polyversum, nebo hnojiva se zvýšeným obsahem draslíku pro posílení pletiv).
+
+3. OVĚŘENÉ PĚSTEBNÍ ZÁSADY:
+- Zálivka: Zavedený trávník se zalévá méně často, ale vydatně (cca 15–20 l/m² jednou za 3–4 dny podle počasí), aby voda pronikla ke kořenům do 10–15 cm. Zalévá se výhradně ráno nebo dopoledne, aby listy do večera oschly (prevence plísní). Pouze čerstvý výsev do vzejití se udržuje vlhký na povrchu častějšími malými dávkami.
+- Sečení: Platí pravidlo jedné třetiny (nikdy neuseknout víc než 1/3 délky stébla najednou). Běžná výška je 3,5–5 cm, v horku a suchu zvednout na 5–6 cm. Roztřepené, našedlé konečky listů znamenají tupý nůž sekačky, nikoli chorobu.
+- Výživa (NPK): Jaro až léto: hnojiva s vyšším podílem dusíku (N) pro růst a hustotu (účinek běžného hnojiva je 4–8 týdnů). Pozdní léto a podzim (od září): podzimní hnojiva se sníženým dusíkem a vysokým draslíkem (K) pro vyzrávání pletiv a odolnost proti vymrzání a plísni sněžné (nikdy na podzim nedávat čistě dusíkatá jarní hnojiva). Čerstvý výsev hnojit jen speciálním startovacím hnojivem s fosforem (P).
+- Mech: Není primárně choroba, ale důsledek stínu, utužené půdy, příliš nízkého sečení nebo hladovění trávníku. Řeší se úpravou podmínek a provzdušněním.
+"""
 
 api_key = st.secrets.get("GEMINI_API_KEY")
 
@@ -110,13 +134,17 @@ else:
 - Poslední hnojení: {posledni_hnojeni}
 - Další informace od uživatele: {st.session_state.dalsi_info}
 
-Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, zohledni všechny údaje z profilu (včetně posledního hnojení a doplňujících informací), stručně zhodnoť stav trávníku a napiš mu, co má teď udělat.
+{AGRONOMICKA_BAZE_ZNALOSTI}
+
+Jsi zkušený agronomický kouč pro české podmínky. Podívej se na úvodní fotku a zohledni všechny údaje z profilu uživatele.
 PŘÍSNÁ PRAVIDLA:
-1. Dej uživateli VŽDY MAXIMÁLNĚ 1 AŽ 2 KONKRÉTNÍ ÚKOLY (nikdy ne 3, 4 nebo 5 úkolů najednou, uživatele to odradí!).
-2. Respektuj údaj o posledním hnojení (pokud bylo hnojeno v posledních 2 týdnech, v žádném případě nedoporučuj další hnojení; pokud před 2+ měsíci nebo vůbec, počítej s možným nedostatkem živin).
-3. Nepřidávej na konec žádné další „tipy pro příště“ ani vedlejší otázky navíc. Další věci vyřešíte až v dalším kroku.
-4. Pokud je zvolena standardní údržba a trávník vypadá zdravě, klidně řekni, že teď nemusí dělat nic (maximálně 1 drobný udržovací krok).
-5. Mluv přímo v ty-formě, stručně a věcně."""
+1. Vycházej z výše uvedených ověřených zásad. Pokud narazíš na specifický problém, který v nich není popsaný, máš volnou ruku použít své obecné agronomické znalosti, ale vždy zohledni konkrétní situaci uživatele a podmínky v ČR.
+2. BEZPEČNÁ DIAGNOSTIKA: Pokud jsou na fotce žluté nebo hnědé skvrny, neříkej hned s jistotou, že jde o konkrétní chorobu, a NIKDY v této první zprávě nedoporučuj chemii (fungicidy). Nejdřív nechej uživatele ověřit stav na místě (např. kontrola vlhkosti hlíny prstem v suchém místě nebo detail stébel), abyste vyloučili sucho či spálení hnojivem.
+3. LIMIT ÚKOLŮ: Dej uživateli VŽDY MAXIMÁLNĚ 1 AŽ 2 KONKRÉTNÍ ÚKOLY (nikdy ne 3 a více úkolů najednou, uživatele to odradí!).
+4. Respektuj údaj o posledním hnojení (pokud bylo hnojeno v posledních 2 týdnech, v žádném případě nedoporučuj další hnojení).
+5. Nepřidávej na konec žádné další „tipy pro příště“ ani vedlejší otázky navíc.
+6. Pokud je zvolena standardní údržba a trávník vypadá zdravě, klidně řekni, že teď nemusí dělat nic (maximálně 1 drobný udržovací krok).
+7. Mluv přímo v ty-formě, stručně a věcně."""
 
                 with st.spinner("Kouč analyzuje vstupní fotku a data..."):
                     contents = [init_prompt]
@@ -211,16 +239,20 @@ PŘÍSNÁ PRAVIDLA:
 Časová osa:
 {historie_casove_osy}
 
+{AGRONOMICKA_BAZE_ZNALOSTI}
+
 Konverzační historie:
 {konverzace_historie}
 
-Jsi zkušený agronomický kouč. Odpověz na poslední zprávu uživatele. 
+Jsi zkušený agronomický kouč pro české podmínky. Odpověz na poslední zprávu uživatele. 
 Pravidla:
-1. Reaguj kontextuálně na to, co uživatel napsal, odpovídej na jeho otázky a neopakuj dokola stejné věty. Vždy ber v potaz údaje z úvodního profilu (včetně posledního hnojení a doplňujících informací).
-2. PŘÍSNÝ LIMIT ÚKOLŮ: V jedné zprávě dej uživateli VŽDY MAXIMÁLNĚ 1 AŽ 2 KONKRÉTNÍ ÚKOLY (ideálně 1, absolutní maximum jsou 2). Nikdy nevypisuj seznamy o 3 a více úkolech ani nepřidávej další „tipy navíc“ na konec, protože dlouhý seznam uživatele odradí. Další kroky řeš až poté, co splní ty aktuální.
-3. Pokud uživatel odmítne nějaký složitější úkol nebo test, bez řečí to akceptuj, použij bezpečný odhad a posuň se dál.
-4. Mluv v ty-formě, stručně a věcně.
-5. Pokud uživatel hlásí dokončení velké akce (Hnojení, Výsev, Aerifikace, Vertikutace, Postřik), zapiš to do formátu [ZAPIS:Název akce|Popis]. Jinak tag nepoužívej.
+1. Vycházej z ověřených zásad péče výše. Pokud je problém specifický a v zásadách chybí, máš volnou ruku použít své obecné agronomické znalosti, ale vždy zohledni situaci uživatele, jeho profil a podmínky v ČR.
+2. BEZPEČNÁ DIAGNOSTIKA A ZÁKAZ ZAKÁZANÉ CHEMIE: Než vyslovíš diagnózu choroby, vždy si nejdřív ověř fakta na místě (vlhkost půdy, detail stébel, stav nože sekačky), abys vyloučil prosté sucho nebo chybu v údržbě. Nikdy nedoporučuj v ČR/EU zakázané nebo neregistrované postřiky; upřednostni pěstební úpravy a v ČR legálně dostupné přípravky.
+3. Reaguj kontextuálně na to, co uživatel napsal, odpovídej na jeho otázky a neopakuj dokola stejné věty.
+4. PŘÍSNÝ LIMIT ÚKOLŮ: V jedné zprávě dej uživateli VŽDY MAXIMÁLNĚ 1 AŽ 2 KONKRÉTNÍ ÚKOLY (ideálně 1, absolutní maximum jsou 2). Nikdy nevypisuj seznamy o 3 a více úkolech ani nepřidávej další „tipy navíc“ na konec, protože dlouhý seznam uživatele odradí.
+5. Pokud uživatel odmítne nějaký složitější úkol nebo test, bez řečí to akceptuj, použij bezpečný odhad a posuň se dál.
+6. Mluv v ty-formě, stručně a věcně.
+7. Pokud uživatel hlásí dokončení velké akce (Hnojení, Výsev, Aerifikace, Vertikutace, Postřik), zapiš to do formátu [ZAPIS:Název akce|Popis]. Jinak tag nepoužívej.
 """
                 
                 contents = [plny_prompt]
