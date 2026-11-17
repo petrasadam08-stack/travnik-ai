@@ -6,8 +6,8 @@ from PIL import Image
 
 st.set_page_config(page_title="Trávníkový Průvodce", page_icon="🌱", layout="centered")
 
-st.title("🌱 Osobní Trávníkový Průvodce – Verze 3.11")
-st.caption("Inteligentní agronomický kouč – ověřené postupy ČR a bezpečná diagnostika")
+st.title("🌱 Osobní Trávníkový Průvodce – Verze 3.12")
+st.caption("Inteligentní agronomický kouč – ověřené postupy ČR a ochrana proti výpadkům")
 
 # --- OVĚŘENÁ AGRONOMICKÁ ZÁKLADNA (METODIKA ČR / STŘEDNÍ EVROPA) ---
 AGRONOMICKA_BAZE_ZNALOSTI = """
@@ -32,6 +32,30 @@ OVĚŘENÉ ZÁSADY PÉČE O TRÁVNÍK V ČR (ČZU / METODIKA TRÁVNÍKÁŘSTVÍ 
 - Výživa (NPK): Jaro až léto: hnojiva s vyšším podílem dusíku (N) pro růst a hustotu (účinek běžného hnojiva je 4–8 týdnů). Pozdní léto a podzim (od září): podzimní hnojiva se sníženým dusíkem a vysokým draslíkem (K) pro vyzrávání pletiv a odolnost proti vymrzání a plísni sněžné (nikdy na podzim nedávat čistě dusíkatá jarní hnojiva). Čerstvý výsev hnojit jen speciálním startovacím hnojivem s fosforem (P).
 - Mech: Není primárně choroba, ale důsledek stínu, utužené půdy, příliš nízkého sečení nebo hladovění trávníku. Řeší se úpravou podmínek a provzdušněním.
 """
+
+def zavolej_gemini(client, contents):
+    """Zkusí hlavní model, při přetížení (503) počká a případně přepne na záložní model."""
+    modely = ["gemini-3.1-flash-lite", "gemini-3.6-flash"]
+    for model_name in modely:
+        for pokus in range(2):
+            try:
+                resp = client.models.generate_content(
+                    model=model_name,
+                    contents=contents
+                )
+                if resp and resp.text:
+                    return resp.text, None
+            except Exception as e:
+                err = str(e)
+                if "429" in err or "RESOURCE_EXHAUSTED" in err:
+                    return None, "⚠️ Vyčerpán bezplatný limit požadavků API. Zkus to prosím za minutku znovu."
+                if "503" in err or "UNAVAILABLE" in err or "500" in err:
+                    time.sleep(1.5)
+                    continue
+                # U jiné chyby (např. nepodporovaný model) přejde rovnou na další model
+                break
+    return None, "⚠️ Servery AI jsou teď dočasně přetížené (chyba 503). Zkus to prosím za pár vteřin znovu."
+
 
 api_key = st.secrets.get("GEMINI_API_KEY")
 
@@ -108,31 +132,19 @@ else:
             submit_onboarding = st.form_submit_button("Spustit aplikaci a zahájit péči 🚀")
             
             if submit_onboarding:
-                st.session_state.onboarding_done = True
-                st.session_state.stav_travniku = stav_travniku
-                st.session_state.rezim_startu = rezim_startu
-                st.session_state.frekvence_zalivky = frekvence_zalivky
-                st.session_state.posledni_hnojeni = posledni_hnojeni
-                st.session_state.dalsi_info = dalsi_info.strip() if dalsi_info.strip() else "Žádné"
+                dalsi_info_clean = dalsi_info.strip() if dalsi_info.strip() else "Žádné"
                 
                 init_img_obj = None
                 if init_foto is not None:
                     init_img_obj = Image.open(init_foto)
                     init_img_obj.thumbnail((1024, 1024))
-                    st.session_state.last_sent_photo_name = init_foto.name
-                
-                st.session_state.timeline.append({
-                    "date": str(date.today()),
-                    "action": "Vstupní profil",
-                    "note": f"Stav: {stav_travniku}, Cíl: {rezim_startu}, Zálivka: {frekvence_zalivky}, Poslední hnojení: {posledni_hnojeni}, Poznámka: {st.session_state.dalsi_info}"
-                })
 
                 init_prompt = f"""Uživatel právě spustil aplikaci. 
 - Stav trávníku: {stav_travniku}
 - Cíl: {rezim_startu}
 - Dosavadní zálivka: {frekvence_zalivky}
 - Poslední hnojení: {posledni_hnojeni}
-- Další informace od uživatele: {st.session_state.dalsi_info}
+- Další informace od uživatele: {dalsi_info_clean}
 
 {AGRONOMICKA_BAZE_ZNALOSTI}
 
@@ -151,21 +163,32 @@ PŘÍSNÁ PRAVIDLA:
                     if init_img_obj:
                         contents.append(init_img_obj)
                     
-                    try:
-                        resp = client.models.generate_content(
-                            model="gemini-3.1-flash-lite",
-                            contents=contents
-                        )
-                        inicialni_text = resp.text if resp and resp.text else "Zaregistroval jsem vstupní data. Jdeme na to!"
-                    except Exception as e:
-                        inicialni_text = f"Chyba při inicializaci AI: {e}"
+                    inicialni_text, chyba_startu = zavolej_gemini(client, contents)
 
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": inicialni_text, 
-                    "image": init_img_obj
-                })
-                st.rerun()
+                if chyba_startu:
+                    st.warning(chyba_startu)
+                else:
+                    st.session_state.onboarding_done = True
+                    st.session_state.stav_travniku = stav_travniku
+                    st.session_state.rezim_startu = rezim_startu
+                    st.session_state.frekvence_zalivky = frekvence_zalivky
+                    st.session_state.posledni_hnojeni = posledni_hnojeni
+                    st.session_state.dalsi_info = dalsi_info_clean
+                    if init_foto is not None:
+                        st.session_state.last_sent_photo_name = init_foto.name
+
+                    st.session_state.timeline.append({
+                        "date": str(date.today()),
+                        "action": "Vstupní profil",
+                        "note": f"Stav: {stav_travniku}, Cíl: {rezim_startu}, Zálivka: {frekvence_zalivky}, Poslední hnojení: {posledni_hnojeni}, Poznámka: {dalsi_info_clean}"
+                    })
+
+                    st.session_state.messages.append({
+                        "role": "assistant", 
+                        "content": inicialni_text, 
+                        "image": init_img_obj
+                    })
+                    st.rerun()
 
     # --- HLAVNÍ APLIKACE ---
     else:
@@ -259,18 +282,9 @@ Pravidla:
                 if img_obj:
                     contents.append(img_obj)
                 
-                ai_reply = None
-                try:
-                    response = client.models.generate_content(
-                        model="gemini-3.1-flash-lite",
-                        contents=contents
-                    )
-                    if response and response.text:
-                        ai_reply = response.text
-                    else:
-                        ai_reply = "Omlouvám se, nedostal jsem od modelu žádnou odpověď."
-                except Exception as e:
-                    ai_reply = f"Chyba při komunikaci s AI: {e}"
+                ai_reply, chyba_chatu = zavolej_gemini(client, contents)
+                if chyba_chatu:
+                    ai_reply = chyba_chatu
 
                 if ai_reply and "[ZAPIS:" in ai_reply:
                     try:
