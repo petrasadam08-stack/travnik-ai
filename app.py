@@ -62,7 +62,23 @@ else:
                 ]
             )
 
-            st.write("4. **Nahraj aktuální fotku trávníku** (pro vstupní diagnostiku):")
+            posledni_hnojeni = st.selectbox(
+                "4. Před jakou dobou jsi naposledy hnojil?",
+                [
+                    "Vůbec / letos ještě nehnojeno",
+                    "V posledních 2 týdnech (čerstvě pohnojeno)",
+                    "Před 3 až 6 týdny",
+                    "Před 2 a více měsíci"
+                ]
+            )
+
+            dalsi_info = st.text_area(
+                "5. Další doplňující informace pro kouče (volitelné):",
+                placeholder="Např. velký stín ze stromů, pes na zahradě, robotická sekačka, problém s mechem...",
+                height=80
+            )
+
+            st.write("6. **Nahraj aktuální fotku trávníku** (pro vstupní diagnostiku):")
             init_foto = st.file_uploader("Počáteční foto trávníku", type=["jpg", "jpeg", "png"], key="onboarding_photo_input")
             
             submit_onboarding = st.form_submit_button("Spustit aplikaci a zahájit péči 🚀")
@@ -72,6 +88,8 @@ else:
                 st.session_state.stav_travniku = stav_travniku
                 st.session_state.rezim_startu = rezim_startu
                 st.session_state.frekvence_zalivky = frekvence_zalivky
+                st.session_state.posledni_hnojeni = posledni_hnojeni
+                st.session_state.dalsi_info = dalsi_info.strip() if dalsi_info.strip() else "Žádné"
                 
                 init_img_obj = None
                 if init_foto is not None:
@@ -82,20 +100,23 @@ else:
                 st.session_state.timeline.append({
                     "date": str(date.today()),
                     "action": "Vstupní profil",
-                    "note": f"Stav: {stav_travniku}, Cíl: {rezim_startu}, Dosavadní zálivka: {frekvence_zalivky}"
+                    "note": f"Stav: {stav_travniku}, Cíl: {rezim_startu}, Zálivka: {frekvence_zalivky}, Poslední hnojení: {posledni_hnojeni}, Poznámka: {st.session_state.dalsi_info}"
                 })
 
                 init_prompt = f"""Uživatel právě spustil aplikaci. 
 - Stav trávníku: {stav_travniku}
 - Cíl: {rezim_startu}
 - Dosavadní zálivka: {frekvence_zalivky}
+- Poslední hnojení: {posledni_hnojeni}
+- Další informace od uživatele: {st.session_state.dalsi_info}
 
-Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, stručně zhodnoť stav trávníku a napiš mu, co má teď udělat.
+Jsi zkušený agronomický kouč. Podívej se na jeho úvodní fotku, zohledni všechny údaje z profilu (včetně posledního hnojení a doplňujících informací), stručně zhodnoť stav trávníku a napiš mu, co má teď udělat.
 PŘÍSNÁ PRAVIDLA:
 1. Dej uživateli VŽDY MAXIMÁLNĚ 1 AŽ 2 KONKRÉTNÍ ÚKOLY (nikdy ne 3, 4 nebo 5 úkolů najednou, uživatele to odradí!).
-2. Nepřidávej na konec žádné další „tipy pro příště“ ani vedlejší otázky navíc. Další věci vyřešíte až v dalším kroku.
-3. Pokud je zvolena standardní údržba a trávník vypadá zdravě, klidně řekni, že teď nemusí dělat nic (maximálně 1 drobný udržovací krok).
-4. Mluv přímo v ty-formě, stručně a věcně."""
+2. Respektuj údaj o posledním hnojení (pokud bylo hnojeno v posledních 2 týdnech, v žádném případě nedoporučuj další hnojení; pokud před 2+ měsíci nebo vůbec, počítej s možným nedostatkem živin).
+3. Nepřidávej na konec žádné další „tipy pro příště“ ani vedlejší otázky navíc. Další věci vyřešíte až v dalším kroku.
+4. Pokud je zvolena standardní údržba a trávník vypadá zdravě, klidně řekni, že teď nemusí dělat nic (maximálně 1 drobný udržovací krok).
+5. Mluv přímo v ty-formě, stručně a věcně."""
 
                 with st.spinner("Kouč analyzuje vstupní fotku a data..."):
                     contents = [init_prompt]
@@ -176,6 +197,8 @@ PŘÍSNÁ PRAVIDLA:
 - Stav trávníku: {st.session_state.get('stav_travniku', 'Nezadáno')}
 - Hlavní cíl / režim: {st.session_state.get('rezim_startu', 'Nezadáno')}
 - Dosavadní zálivka uživatele: {st.session_state.get('frekvence_zalivky', 'Nezadáno')}
+- Poslední hnojení: {st.session_state.get('posledni_hnojeni', 'Nezadáno')}
+- Další doplňující informace: {st.session_state.get('dalsi_info', 'Žádné')}
 
 """
                 
@@ -193,7 +216,7 @@ Konverzační historie:
 
 Jsi zkušený agronomický kouč. Odpověz na poslední zprávu uživatele. 
 Pravidla:
-1. Reaguj kontextuálně na to, co uživatel napsal, odpovídej na jeho otázky a neopakuj dokola stejné věty.
+1. Reaguj kontextuálně na to, co uživatel napsal, odpovídej na jeho otázky a neopakuj dokola stejné věty. Vždy ber v potaz údaje z úvodního profilu (včetně posledního hnojení a doplňujících informací).
 2. PŘÍSNÝ LIMIT ÚKOLŮ: V jedné zprávě dej uživateli VŽDY MAXIMÁLNĚ 1 AŽ 2 KONKRÉTNÍ ÚKOLY (ideálně 1, absolutní maximum jsou 2). Nikdy nevypisuj seznamy o 3 a více úkolech ani nepřidávej další „tipy navíc“ na konec, protože dlouhý seznam uživatele odradí. Další kroky řeš až poté, co splní ty aktuální.
 3. Pokud uživatel odmítne nějaký složitější úkol nebo test, bez řečí to akceptuj, použij bezpečný odhad a posuň se dál.
 4. Mluv v ty-formě, stručně a věcně.
